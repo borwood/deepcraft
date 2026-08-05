@@ -2318,6 +2318,25 @@ inventory: `Litho::reference_material` (six named rocks standing for every
 material in the world) and `classify::block_twin` (fifteen named materials, with
 a `_ => Block::Stone` arm that silently swallows any pack's additions).
 
+**Three more, filed 2026-08-05 from the weathering investigation** (`passes` SKILL
+§ 5; the first two were sitting unfiled while their own doc comments described them):
+- `weather_inventory::BEDROCK_SEAM_MATERIAL` — the inventory-weathering pass weathers
+  **one hardcoded granite basement**, so every saprolite fact in any world names
+  `GRANITE` regardless of the rock actually there (`stubs.md` #16).
+- `geology.rs::emplace_weathering_front` — expresses the product as
+  `CLASS_CLASTIC_FINE`, a named class chosen because *"clay-rich saprolite [is] the
+  honest weathering product of most bedrock."* The comment states the substitution
+  outright, which is to its credit and does not make it less of an A-7: the record says
+  granite-loose while the world shows fine clastic.
+- **And the family generalises past materials to PROCESS identities — `FlowCause`
+  (`flux.rs`) is a closed engine enum of seven transport regimes plus `MOVER_NONE`,
+  which exactly fills its 3 bits.** A pack cannot declare a mover. Its own doc comment
+  describes regimes by *"viscosity, density, competence, resistance, and the field they
+  follow"* — a **term definition**, hardcoded as variants. `inventory.rs::Cause` is a
+  fourth (four weathering agents, closed), and `Dissolution` appears in both enums owned
+  by neither. **This is `DeepAxis`'s shape, persisted in the record rather than in
+  compile-time wiring — so E6, which names only `DeepAxis`, is scoped too narrowly.**
+
 **A worked instance of the diagnostic working *forwards*, 2026-07-26
 (journal/0110).** Movement 2b's material-aware transport pass needed three
 identities and named none of them, and the third is the one worth recording

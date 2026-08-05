@@ -121,11 +121,20 @@ fn record_cell(
 /// **coarser** one, which is the same bias the deposition arithmetic above it has
 /// (coarsest-first drawdown, the falling competence ceiling).
 ///
-/// **STUB #25 — which *mover* delivered it is a different axis, and the record does
-/// not carry one.** Colluvium and alluvium are separable only by signature, not by
-/// label; the byte that would fix it costs ~42 MiB at today's `DepUnit` layout, and
-/// the free version is a packed `(species, mover)` byte. See `stubs.md` § 25 and
-/// `examples/colluvium_probe.rs`, which measures the signature the label is missing.
+/// **The mover axis — `stubs.md` § 25, DISCHARGED 2026-08-02/03 (P11 slice 3).** The
+/// record DOES carry one: every unit holds 3 mover bits, `MOVER_NONE` meaning *made in
+/// place*, and it is **in the merge key**. This function derives the dominant arriving
+/// mover from the same argmax that names the rock; wind writes `Eolian`, waves
+/// `Marine`, pedogenesis and diagenesis `NONE`. The caveat that remains is that it is a
+/// **plurality verdict, not per-metre provenance** — `carried` is computed here and
+/// discarded, so the record keeps *which* mover dominated and loses *by how much*.
+/// `examples/colluvium_probe.rs` measures the colluvium/alluvium signature.
+///
+/// ⚠ **This comment said the opposite until 2026-08-05** — it described #25 as unbuilt,
+/// three days after the byte shipped, and a session reading it published the wrong
+/// conclusion in a read-first artifact before an independent trace caught it. **A-2**,
+/// and the two-directional-pointer lesson: `stubs.md` knew it was discharged; the code
+/// it discharged did not.
 ///
 /// This is deliberately *not* a threshold on "was most of this transported" —
 /// a threshold would be a second rule with a number in it. It is one comparison

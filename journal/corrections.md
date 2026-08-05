@@ -4095,3 +4095,58 @@ case the honest message is *"here is what happened, here is the measurement I am
 dispatching, I will bring the real fork when it lands."* **Diagnosis dispatched
 immediately after the correction** (the monotonicity bisect + sub-cycling test that
 decides K2's viability arithmetically).
+
+## 101. "The reason was never written down" / "nothing durable says this was made here rather than brought here" (two absence-claims by the integrator, 2026-08-05 — published in the `passes` skill, a ROADMAP arc entry and three commit messages; falsified within the hour by the skill's own § 0 sweep and by an independent blind trace)
+
+**The claims.** Two, made hours apart, both stated as findings in read-first artifacts:
+
+1. **D-0** — that the reason the weathering flip was declined (*it wants to be a general
+   process*) had been lost from the record and was recovered only by the user's memory.
+2. **D-2** — that the deep record carries no durable distinction between material **made in
+   place** and material **brought in** by a mover.
+
+**Both are false, and neither needed an experiment to falsify.**
+
+1. `ROADMAP.md:2376` — *"WEATHERING IS ONE PROCESS — SAPROLITE IS A STATE ALONG IT, NOT A
+   SLICE"*, **USER'S STRONG LEANING, 2026-07-25**, in the user's own words, live in
+   § Sequenced, with its requisites **MET** the same day and the gate **OPEN**. Eleven days
+   old. A whole session re-derived it.
+2. Every `DepUnit` carries **3 mover bits**, `MOVER_NONE = 7` meaning *made in place*, packed
+   in the bitfield and **in the merge key** (`recorder.rs:243`, `:543`). `stubs.md` **#25 was
+   DISCHARGED 2026-08-02/03** and carries an explicit banner saying exactly this.
+
+**The mechanism, and it is one mechanism.** Both are **claims of ABSENCE**, and an absence is
+a claim about the *search*, not about the world. The corpus already holds this rule twice —
+anti-shape **A-5**, and `session-workflow`'s *"absence in a tool's output is a claim about the
+tool as much as about the world."* **So the defect was compliance, not coverage.**
+
+What each search actually was:
+- For (1): **no search at all.** A `doc-topology` sweep ran at session start, and the
+  weathering thread was opened afterwards without grepping for *weathering*. That is the
+  sweep-before-a-design-pass rule, skipped by the integrator, in a session that had already
+  run a sweep and therefore *felt* swept.
+- For (2): a search that hit a **stale doc comment and stopped.** `record.rs:124-128` described
+  `stubs.md` #25 as unbuilt, three days after the byte shipped. The comment was believed over
+  the code sitting under it — after this same session had briefed an agent that *"comments are
+  evidence about intent, not proof about behaviour."*
+
+**Why this class costs more than an ordinary wrong claim, which is the part worth keeping.** A
+false statement of fact is wrong once and gets checked. **A false statement of ABSENCE
+instructs every future reader not to look** — it converts a live board entry into a thing
+nobody re-finds, and it does so most effectively in exactly the artifacts written to be read
+cold. The `passes` skill's § 0 sweep called this out in its own words: two of its five red
+findings *"actively instruct the next reader not to look."*
+
+**The disposal.** `passes` SKILL § 5 rewritten (D-0 now opens by pointing at `ROADMAP.md:2376`
+and saying a session re-derived it; D-2 corrected with the mover bits and the stale-pointer
+note); the arc entry at `ROADMAP.md:383` carries the correction where a cold session meets it;
+`record.rs`'s comment fixed and marked **A-2**; `spines.md` A-7 gained the three instances the
+investigation found. **The skill also gained a standing warning in § 0** — *a claim in this
+file that something is new, missing or unwritten is the class most likely to be false.*
+
+**What survives, and it is most of the code work.** Every claim made by reading source held:
+the height tier's write set and phase order (a live test asserts the order), the arrival-channel
+recording, top-of-stack placement, the three weathering authorities, and D-9's argmax discard —
+that last verified twice, once by an agent forbidden from reading the first conclusion. **The
+pattern is exact: right about the code, wrong about the corpus, and wrong only where the claim
+was that the corpus held nothing.**

@@ -393,10 +393,24 @@ consumer defines the store. And *regardless of how they do now* is a licence to 
 every incumbent — the passes and the stores are both bring-up-era in places, and **existence is
 not standing**.
 
-**WHY — one session of investigation found the same defect at four sites, and nothing on the
-board described any of them.** Full inventory with provenance and confidence markers:
-**`.claude/skills/passes/SKILL.md` § 5** (drafted 2026-08-05 at the user's direction; **its own
-§ 0 sweep is OWED and unrun**). The shape, compressed:
+**⚠ FIRST, READ `ROADMAP.md:2376` — *WEATHERING IS ONE PROCESS, SAPROLITE IS A STATE ALONG IT,
+NOT A SLICE*, USER'S STRONG LEANING 2026-07-25, requisites MET, gate OPEN.** That entry is the
+destination this arc serves, it has been live for eleven days, and **the 2026-08-05 session
+re-derived it from scratch without finding it** — nobody grepped for weathering before opening
+the thread, which is the sweep-before-a-design-pass rule, broken by the integrator. *This
+correction is stamped here rather than only in the sweep because the arc entry is what a cold
+session reads.*
+
+**WHY — one session of investigation found the same defect at four sites.** ~~and nothing on the
+board described any of them~~ — **that clause was FALSE and is the arc's own first lesson**
+(corrections, 2026-08-05): D-0 was on the board, D-6 was `stubs.md` #52, the two-stores rule was
+DECIDED 2026-07-24, the altitude test is anti-shape **A-7**, and the third weathering authority
+was enumerated at `:2395`. **What is genuinely new is the CODE findings** — the height tier's
+arrival-channel recording, the deposition-time argmax discard, and the mover-vocabulary
+enum — not the framings around them. Full inventory with provenance and confidence markers:
+**`.claude/skills/passes/SKILL.md` § 5**, **swept 2026-08-05**
+(`docs/audits/2026-08-05-passes-skill-sweep.md`, 16 findings) with **D-2 independently
+verified** (`docs/audits/2026-08-05-d2-deposition-trace-verification.md`). The shape, compressed:
 
 - **The sim computes composition and stores a summary of it — twice.** Transport carries
   per-species rows; the **face archive** keeps one bulk load figure (D-7), and the **recorder**
