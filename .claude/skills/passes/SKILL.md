@@ -26,6 +26,10 @@ A stale procedure doc is worse than none. Before relying on anything below:
    and `:383` (THE HONEST RECORD)** · `docs/dependency-graph.md` §§ 1–2 · `docs/audits/
    2026-08-0{3,4}-*` · journals · `corrections.md` · `stubs.md`.
 2. If anything bears on this skill, **update it in the same session and check with the user.**
+   *(The 2026-08-05 characterization session ran this way by the user's direction — the skill is
+   the working surface for a live design conversation and is updated as it goes. So expect
+   material here that POSTDATES the watermark: § 1's dress-every-contact reconciliation and all
+   of § 7 are unswept, and § 7 is explicitly assistant-originated.)*
 3. **Watermark: last swept 2026-08-05 at base `dd575b65`** —
    `docs/audits/2026-08-05-passes-skill-sweep.md`, **16 findings**; F1–F5 folded in below.
    D-2 verified independently: `docs/audits/2026-08-05-d2-deposition-trace-verification.md`.
@@ -66,6 +70,44 @@ rate from the literature, and it leaves a fact for everything it does.**
   of the "by construction" the ruling asks for (`:70-73`); Law 3 conservation (`:218-223`);
   Law 1 anti-carve (`:198-207`). **Recorded prior violations:** `carve_rivers`
   (`refinement.md:63-66`) and the weathering profile's unmeasured shape (`stubs.md` #20).
+
+- **AND THE APPARENT COLLISION WITH DRESS-EVERY-CONTACT IS RESOLVED — USER RULING,
+  2026-08-05.** The 2026-07-19 method item 5 (*no simulation-resolution edge may reach the eye
+  as a square or analytic boundary*) and *no factless states* look like they contradict. They
+  do not:
+  > *"Relief that is not interpreting and interpolating facts is **categorically wrong** for
+  > refinement. This is a holdover from before the refinement philosophy was shaped up: it had
+  > a visual goal, but no honest mechanism. I had previously ruled about 'procedural tricks'
+  > for nearfield detail: that is still basically true, but **the aim of our procedural tricks
+  > — refinement — is honest expression of the fact stores, meaning everything persisted from
+  > deeptime**."*
+
+  **Procedural tricks are INSTRUMENTS OF EXPRESSION, not sources of content.** Dressing a
+  contact is legal because there *is* a contact — two recorded values meeting. Inventing relief
+  is illegal because no fact stands behind it. Same technique, different job; **the job
+  decides**. Method item 5 stands unamended; it never licensed detail with nothing behind it.
+  - **This condemns move C** — the midpoint-jitter detail synthesizer, filed by the member-#0
+    design pass as *"bounded stochastic detail synthesis"* with a named heir, **no owner**, and
+    **not expressible in refinement's own two-move vocabulary**. That last was the tell: a
+    mechanism that cannot be said in the tier's language is not unowned, it is **foreign**. It
+    is not awaiting an owner; it is wrong. **And the same pass measured that ALL sub-460 m
+    relief in the shipped world comes from it.**
+  - **The interim consequence is a visibly SMOOTHER world, and the user has accepted it
+    explicitly** (*"that is good, correct, desired. Relief is a lie currently and we've been
+    circling how to make it look more honest, which is not the same as being mechanically
+    honest."*). Roughness returns as operators land, each one a claim.
+  - **The reframe worth keeping: SMOOTH IS THE NULL HYPOTHESIS, not a placeholder.** The user's
+    own statement of it: *"if the fact stores only tell us elevation, then we get smooth
+    interpolation of elevations."* For an abyssal plain smooth is **the correct answer** —
+    pelagic sediment genuinely drapes and buries basalt fabric. Every operator is then a
+    **rejection of the null for a stated reason**, never a decoration budget.
+  - **⚠ SCOPE NOT FULLY RULED.** The ruling's words are about **relief**. Whether
+    *position-addressed noise distributing an interpolated MIXTURE* (the octaves cut, the
+    margin question) is likewise condemned is **open** — `refinement.md` Law 1 currently
+    permits position-addressed noise beside recorded quantities. **Integrator's reading,
+    unratified:** arrangement-noise is legal because it *distributes* recorded quantity and
+    conserves it; relief-noise is illegal because it *creates* quantity from nothing. Do not
+    build against that reading.
 
 **The corollary that decides most arguments:** refinement may invent **arrangement**, never
 **substance**. Inventing *where* is a geologist drawing a cross-section between two cores.
@@ -238,10 +280,12 @@ rather than tuning it.**
 **D-5a — the refinement WRITE path.** Narrower than the draft said: **purity forbids it by
 type** (`refinement.md:70-73`). Still unverified for the planes. **D-5b — the refinement READ
 path** is **measured 2026-08-04: "roughly one-quarter true."**
-⚠ **AND THE RECONCILIATION IS OPEN AND USER-OWNED:** a strict reading of *no factless states*
-collides with method item 5's **dress-every-contact** ruling (2026-07-19) and outlaws **all
-sub-460 m relief in the shipped world**, which comes from move C — a stochastic synthesizer
-tracing to no fact. **Both rulings are the user's. Do not resolve this in a slice.**
+✅ **THE RECONCILIATION IS RULED — 2026-08-05, user. See § 1's final bullet.** There is no
+collision: procedural tricks are instruments of expression, method item 5 stands unamended, and
+**move C is categorically wrong rather than merely unowned** — which does outlaw all sub-460 m
+relief in the shipped world, and the user has accepted that consequence explicitly. **The
+residual open question is SCOPE** (does the ruling reach arrangement-noise, or only relief?),
+recorded at § 1.
 
 **D-6 — the alteration clock is coarser than the deposition clock. FILED as `stubs.md` #52**
 (2026-08-04, journal/0154). Sharper statement: **chapter is rewritten in place, so chapter and
@@ -321,7 +365,92 @@ instead of height deltas, and `R`/`H` become views of those facts.**
   edge needs materials that declare where they sit and which way they move (`roster` § 2b). The
   FS-A release spectra are the "which way" half and already exist, literature-cited.
 
-## 7. Pointers
+## 7. What honest expression would REQUIRE — the landform challenge
+
+**⚠ PROVENANCE, and it governs how to read this whole section.** The *challenge* is the user's
+(2026-08-05): *"What facts would you need to know, along with composition of layers, deposition
+reasons, flux amounts, etc… to render a chunk of the swiss alps. a fjord. a foothill. a valley.
+the badlands. the great plains. a sea trench. the ocean floor."* Everything below **except the
+two verified facts** is **assistant-originated geological reasoning — offerings and hypotheses,
+not decisions, not ratified, not a plan.** Kept so a later session argues with them instead of
+re-deriving them.
+
+**✅ VERIFIED AT SOURCE 2026-08-05 (these two are facts, not offerings):**
+- **No structural attitude exists anywhere.** The record is a stack of flat-lying layers. Dip,
+  strike, fold and fault are *intended and named in code* with pinned-pair retirement markers
+  (`lithology.rs:510-527` — *"is a flat stack… once beds dip"* — and `field.rs:607-610`, which
+  states the intent is to **re-derive dip analytically** from tectonic history rather than store
+  it) and are **unbuilt**.
+- **No ice exists.** `FlowCause::Glacial` (`flux.rs:343`) is the **only** glacial occurrence in
+  the whole worldgen crate: an enum variant with **zero producers**.
+
+### 7.1 The table (assistant-originated)
+
+| landform | what makes the sub-460 m shape | what would be needed |
+|---|---|---|
+| **Swiss Alps** | glacial erosion (cirques, arêtes, horns, hanging valleys) + frost shattering above the ice + rock-mass strength + folded/thrust structure | **ice**, **jointing**, **dip/fold** |
+| **Fjord** | overdeepening **below sea level** + a shallow sill at the mouth | **ice** — water cannot erode below base level |
+| **Foothill** | differential erosion of **tilted** beds: strike ridges, dip slopes, cuestas | **dip/strike** (the per-material resistance already exists) |
+| **Valley** | discharge, incision, base-level history, floodplain vs channel, terraces | mostly **facts already held and never read** |
+| **Badlands** | drainage density at **metre** spacing on weak unvegetated rock | not a fact — a **sub-cell process** |
+| **Great Plains** | very low relief; the interest is **surface material** | nearly nothing new |
+| **Sea trench** | subduction geometry, asymmetric profile, accretionary wedge | **plate boundary polarity** (unchecked) |
+| **Ocean floor** | thermal subsidence (depth ∝ √age) + pelagic sediment **draping** basalt fabric | **seafloor age**, sediment thickness |
+
+### 7.2 The three that teach most (assistant-originated)
+
+- **The fjord tests the ruling.** A fjord is cut **below sea level**, which water physically
+  cannot do — so its shape is a **signature of the agent**, not decoration on a valley.
+  Refinement cannot honestly produce one from noise, *or* from elevation and composition. It
+  needs a fact saying *ice was here, this thick, flowing this way*. That class does not exist
+  and its enum slot is already reserved and empty.
+- **The foothill is the purest missing-attitude case.** Everything needed for differential
+  erosion exists — per-material resistance at member grade, a weathering pass reading the real
+  surface material — **except that flat beds erode to flat benches.** Tilt them and ridges and
+  valleys fall out of machinery we already have. Very high landscape-per-missing-fact ratio.
+- **Badlands are not a fact problem at all.** Channel spacing is *metres*; storing that would be
+  recording the answer rather than the cause. They need refinement to run **its own small
+  drainage solve inside the cell**, seeded by recorded runoff, material weakness and vegetation
+  — which is exactly the channel operator's design (`refinement.md` § 7.1: *"a boundary-value
+  solve inside the cell, faces as Dirichlet data, budget spent along the solution path"*).
+  **So badlands are that operator's acceptance test**, and they are honest under § 1's ruling
+  because the relief comes from a process.
+
+### 7.3 The five categories, and they are THREE different refactors
+
+1. **Structural attitude** — no dip/strike/fold/fault. Forecloses cuestas, hogbacks, strike
+   ridges, dip slopes, fault scarps, folded topography. *Assistant's reading: the single
+   largest gap.* **Live fork, unopened:** stored per-cell dip vector vs re-derived analytically
+   from tectonic history — the code comments say re-derived is the intent, which would make it
+   a **refinement input** rather than a stored fact.
+2. **Missing agents** — ice above all; dissolution/karst (cause enumerated, agent dormant).
+3. **Rock properties beyond erodibility — jointing.** Cliff-versus-talus is a rock-mass-strength
+   question. We have grain size, cohesion, density. *Open: whether jointing derives from terms
+   already declared (a `roster` question) or is a new axis.*
+4. **Sub-cell PROCESS, not sub-cell facts** — badlands, gullies, talus cones, meander detail.
+   Wants operators, not storage.
+5. **Facts held and lost or never read** — composition discarded at deposition (D-9) and at the
+   faces (D-7); drainage, head, exhumation, geotherm built and idle.
+
+> **The split worth carrying: RECORD THE FACT · RUN THE PROCESS · BUILD THE AGENT.** Three
+> refactors with different owners and different costs, and they are routinely conflated.
+
+### 7.4 What could be rendered honestly today (assistant-originated)
+
+**The abyssal plain, the Great Plains, and a mature fluvial valley** — the last only once the
+flux archive carries composition and something reads it. Everything else needs at least one of
+the five.
+
+### 7.5 Known unknowns from this pass
+
+- **Whether tectonics carries plate identity and boundary polarity** — decides the trench.
+  **Not checked.**
+- **Whether jointing is derivable from existing material terms**, or is a new axis.
+- **Where structural attitude should live** — stored vs re-derived (see 7.3.1). *The integrator's
+  suggestion for the next thread; not a decision.*
+- **Whether § 1's ruling reaches arrangement-noise or only relief** (§ 1's scope flag).
+
+## 8. Pointers
 
 - `material-behavior.md` §§ 3–4, **:76-85 (commit semantics)**, **:309-322 (the two shapes)**,
   **:349-371 (the split rule)**, **:373-379 (the four axes)**, § 11 · `earth-processes.md`

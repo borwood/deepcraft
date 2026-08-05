@@ -27,6 +27,36 @@ plugin-agnostic engine"*). **What this document proposes is the surface**: the
 authoring shape, the coupling, and the first members. That is exactly the slot
 north-star § refinement left open: *"the boundary is decided; the surface is not."*
 
+> **✅ EXTENDED AND MADE OPERATIONAL — USER RULING 2026-08-05.** *"Relief that is not
+> interpreting and interpolating facts is **categorically wrong** for refinement… I had
+> previously ruled about 'procedural tricks' for nearfield detail: that is still basically true,
+> but **the aim of our procedural tricks — refinement — is honest expression of the fact stores,
+> meaning everything persisted from deeptime**."*
+>
+> **What it settles.** The apparent collision between this principle / *no factless states* and
+> `earth-processes.md` **method item 5** (dress every grid-scale contact, RATIFIED 2026-07-19)
+> is dissolved: **procedural tricks are instruments of EXPRESSION, not sources of content.**
+> Dressing a contact is legal because a contact is a recorded fact; inventing relief is not,
+> because nothing stands behind it. Method item 5 stands **unamended**.
+>
+> **What it condemns: MOVE C** (§ 7 member 0 — *"bounded stochastic detail synthesis"*, the
+> `collapse.rs::lattice` midpoint jitter, filed with a named heir and **no owner**, and noted
+> there as **not expressible in this document's two-move vocabulary**). It is not awaiting an
+> owner; it is **wrong**. And this document already records that **all sub-460 m relief in the
+> shipped world comes from it** — so the ruling makes the world visibly **smoother** until
+> fact-driven operators land. **The user accepted that consequence explicitly**: *"that is good,
+> correct, desired. Relief is a lie currently and we've been circling how to make it look more
+> honest, which is not the same as being mechanically honest."*
+>
+> **The reframe:** *"if the fact stores only tell us elevation, then we get smooth interpolation
+> of elevations."* **Smooth is the NULL HYPOTHESIS, not a placeholder** — for an abyssal plain
+> it is the correct answer — and every operator is a rejection of the null for a stated reason.
+>
+> ⚠ **Scope not fully ruled:** whether this reaches *position-addressed noise distributing an
+> interpolated mixture* (§ 5 Law 1 permits it today) or only **relief**, is **open**.
+> **Full working record, including what each landform would require:
+> `.claude/skills/passes/SKILL.md` §§ 1 and 7** (§ 7 is assistant-originated and unratified).
+
 **Principle added to this stack 2026-08-03 (user; stamped here by the integrator after
 doc-topology found this doc — the stack's owner — did not carry it):** *"ideally our
 default case, barring any physical drivers, is utterly smooth interpolation between all
