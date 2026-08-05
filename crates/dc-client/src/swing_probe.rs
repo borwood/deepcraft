@@ -485,6 +485,34 @@ mod gate {
         for (phase, change, jump) in &changes {
             println!("    decision change at phase {phase:.4}: {change}  (knee jump {jump:.4}°)");
         }
+        // The whole SWING, one entry per distinct rendered pose — the shape the
+        // user is describing ("bend … back to straight … back to bent") is a
+        // sign pattern in this row, not a statistic.
+        let mut track: Vec<String> = Vec::new();
+        let mut last = f64::NAN;
+        let swing: Vec<&Sample> = t.series.iter().filter(|s| s.swing).collect();
+        // A continuous trace has one distinct pose per sample; decimate it to a
+        // readable row. A quantized one already has exactly its held poses.
+        let stride = if t.quantized { 1 } else { swing.len() / 40 + 1 };
+        for s in swing.into_iter().step_by(stride) {
+            if (s.knee_deg - last).abs() > 1e-9 {
+                track.push(format!(
+                    "{:.1}{}",
+                    s.knee_deg,
+                    if matches!(s.decision, Decision::Seated) {
+                        "*"
+                    } else {
+                        ""
+                    }
+                ));
+                last = s.knee_deg;
+            }
+        }
+        println!(
+            "    SWING knee track ({} distinct poses, `*` = seated/clip pose): {}",
+            track.len(),
+            track.join(" ")
+        );
         // The raw series around the worst knee step — every recorded column, so
         // the cause is a lookup rather than a second run.
         let n = t.series.len();
