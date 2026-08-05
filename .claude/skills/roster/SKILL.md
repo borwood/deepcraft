@@ -161,6 +161,17 @@ the pack — whatever remains is engine, and it must be featureless and conserva
   parent-materials entry (filed 2026-08-04); the north-star de-risk names
   wood/charcoal `combust→` resolution as the first build; the density/porosity
   sheet reconciliation rides the same design pass.
+- **⚠ AND A LIVE CONSUMER IS ALREADY BLOCKED ON IT — measured 2026-08-04 (S1,
+  journal/0156):** P-1's ruled M-C continuum predicate **cannot be built today**
+  because **no material declares a REGION**. `MaterialProps` is point-valued
+  (`grain_size_mm` is one characteristic value), and the FS-A release spectra
+  describe what a rock **sheds**, not where it **sits** — granite's products span
+  the whole ladder. Any predicate written now would need a threshold on a scalar
+  distance, i.e. exactly the fitted taxonomy § 2 step 2 forbids. **So "derive,
+  never hand-pair" currently has nothing to derive FROM at the region level, and
+  that gap is this section's work.** Constructive pointer from the measurement:
+  **`GrainGrade`'s Wentworth partition already declares real interval bounds** —
+  that is the shape the property sheet needs, per material, per axis.
 
 ## 3. Pointers
 

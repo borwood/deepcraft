@@ -19,18 +19,29 @@ read live, never when it gets old.**
 
 ## In flight
 
-- **TWO BUILDS DISPATCHED 2026-08-04 (geo session), independent file territories,
-  sharing the build slot:**
-  - **S1 — the correlation kernel** (pure functions, consumerless; epoch-interval
-    partition + lazy per-column evaluation per S0's I-5; § 2.3 invariants as tests;
-    B-1's zero-partner feather asserted; the M-C continuum predicate built-if-it-fits,
-    else owed to S2). New module under `deeptime/`; no golden moves; cheap-evidence tier.
-  - **E4-2 — the implicit field kernel + convergence study** (K2: BE-factorized ADI +
-    fixed-k Picard + today's limiter as the final projection; non-default, nothing ships
-    through it, no golden moves). Study: world agreement at M ∈ {45, 150} on the P2
-    instruments against the **rung-noise-derived bar**, plus the two structural fixtures
-    (rotated-ridge anisotropy; the added strongly-limited cascade). `dc-core::field` +
-    `creep_operator_probe`.
+- **✅ S1 SHIPPED 2026-08-04 (journal/0156, merged): the correlation kernel.** The
+  deposition clock made the rule *smaller* — the shared partition is the sorted union
+  of the epochs the parents stamp, interval *k* IS epoch *k*, no bed is ever split.
+  Pinch-out, P-4's onlap feather and seam-freeness all fall out with **no branch in
+  the file**; mass is an identity. One partition table per chunk + a per-column
+  iterator that allocates nothing (S0's I-5). 10 invariants, +0.00 s gate;
+  cheap-evidence green (fmt 0 · clippy 0 · dc-worldgen 497/0). **BATCH DEBT: the full
+  workspace trio is owed at the S2 boundary.** Nothing wired, no goldens moved.
+  Inherited by S2: stubs #54 (mirrored weights, deadline S2's merge), the veneer's
+  `unclocked_m` placement, and the M-C predicate below.
+- **⚠ E4-2 IS NOT GREEN — DIAGNOSIS IN FLIGHT 2026-08-04.** Its agent never got the
+  build slot, so the K2 kernel had never been compiled; the integrator compiled it:
+  dc-core's 163 existing tests pass, but **both new structural fixtures FAIL** — the
+  implicit step **flipped the grid-scale mode** (+20 → −18.3 at per-edge a = 5; holds
+  at 0.5; the calibrated world runs at a ≈ 105), which is U-1's non-negotiable — plus
+  fmt and 2 clippy errors. Hypothesis under test (integrator's, unproven): the
+  limiter-as-projection guarantees mass and h ≥ 0 but **not no-overshoot**, so a full
+  cell shipping 100 % of inventory to bare neighbours IS the flip — meaning accuracy
+  sub-cycling is *required for monotonicity*, not optional for accuracy, which would
+  collapse K2's cost advantage (break-even A_ACC ≈ 1.9). The diagnosis agent repairs
+  fmt/clippy, bisects the true monotonicity bound, and measures whether sub-cycling
+  restores it. **Do not merge that branch.** The **derived agreement bar** (U-4's
+  mechanism, from the P2 ladder's own rows) is complete and survives regardless.
 
 - **THE NORTH STAR — the engine shape everything converges to (RATIFIED
   2026-07-23; `docs/design/north-star.md`; now CLAUDE.md read-first item 0).**
@@ -455,15 +466,20 @@ sequence — each names its authority docs rather than restating them.
   pinned), exactly the 6 GOLDEN_RECORD* families re-captured once, all others
   byte-still; full trio **fmt 0 · clippy 0 · 1006/0 · 94 suites**. New stand-in:
   stubs #52 (epoch immutable under overprint; alteration-time axis is the heir).
-  ~~**NEXT: S0**~~ **✅ S0 DONE 2026-08-04** (`2026-08-04-s0-correlation-measurements.md`,
+  **✅ S1 SHIPPED 2026-08-04** (journal/0156 — the epoch-keyed join; see § In flight for
+  what it inherits to S2). ~~**NEXT: S0**~~ **✅ S0 DONE 2026-08-04** (`2026-08-04-s0-correlation-measurements.md`,
   merged): I-5 = **(ii) lazy per-column evaluation** (naive = +104.8 % of `column()`;
   (iii) not needed); 2×2 epoch-partition mean 44.9 / p95 145 (clock 4.2× finer than
   chapters); mixture cap passes 14 vs 3,002; unit count settled **7,304,581** (the
   Observed entry resolved); `contents_contract` re-baselined 137.31 s; **two
   refutations stamped** — the gap-duration claim (corrections #99) and F4's 8.6×
-  cost arithmetic (banner on the design). **NEXT: S1** (kernel, epoch-interval
-  correlation, lazy-eval fill shape) → S2 (wiring + goldens,
-  retirements) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  cost arithmetic (banner on the design). ~~**NEXT: S1**~~ **NEXT: S2** — wiring into `column()`, the
+  ≤14-file `record_for` repayment, P-5's retirements (`cell_of`, the near
+  `sample_source_cell` site, the `NearRecordMembership` domain), B-1 at the record
+  extent, fold-per-parent, the veneer's placement, **stubs #54's deadline**, CONTENTS
+  + SURFACE re-capture with deep-time stillness asserted in the same merge, and the
+  **full workspace trio clearing S1's batch debt** (the arc-chunk boundary) → S3
+  (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
@@ -507,6 +523,18 @@ reconciliation rides the same design pass** (solid density + porosity as axes, b
 derived — the sheet's two-convention defect, roster skill § 2 step 1 caveat). B6-c
 (bodies) is a second consumer, **not the justification** — the argument stands without
 bodies.
+
+**⚠ A THIRD CONSUMER APPEARED 2026-08-04, AND IT IS A LIVE BLOCKER — S1 measured it
+(journal/0156):** P-1's ruled **M-C continuum predicate is not buildable today**, and
+the reason is exactly this entry's subject. The ruling needs *regions adjoining on a
+declared axis*; **no material declares a region** — `MaterialProps` is point-valued,
+and FS-A's release spectra describe what a rock **sheds**, not where it **sits**
+(granite sheds gravel→clay; its support is the whole ladder). Any predicate buildable
+now would need a threshold on a scalar distance — the fitted taxonomy `materials.md`
+§ DECIDED 2026-08-04 forbids by name. So the correlation build ships M-C's *hook* and
+the predicate waits on the term-schema half of this work. **Constructive pointer from
+the measurement:** `GrainGrade`'s Wentworth partition already declares real interval
+bounds — that is the shape the property sheet needs, per material, per axis.
 
 ### THE STAND-IN MARKER CONTROL — **owed 2026-08-03 (corrections #97, greenlit fingerprint); survey first, sweep second**
 
