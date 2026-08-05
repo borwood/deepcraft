@@ -2391,7 +2391,10 @@ mod tests {
                 }
             }
         }
-        assert!(bearing_seen > 0, "this plan must bear, or the check is vacuous");
+        assert!(
+            bearing_seen > 0,
+            "this plan must bear, or the check is vacuous"
+        );
         assert!(
             owners.clips[0].owns("arm_l_upper"),
             "…and a clip DOES own the non-bearing segment it names, or the \
