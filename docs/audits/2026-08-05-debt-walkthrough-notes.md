@@ -195,3 +195,65 @@ information the faces never held.
 
 ⬦ *Both should precede any remedy. corrections **#57** is the worked case where the argmax
 produced a wrong world and is the strongest existing argument on this item.*
+
+### 3.5 ✅ USER RULING, 2026-08-05: **"any share of recorded metres getting relabelled is too much."**
+
+Settles the argmax question **without a measurement**. The identity-loss fraction is demoted from
+a *decision* input to a **sizing** input — still worth taking (it tells us how sparse a real
+distribution is, hence what it costs), but not to decide whether.
+
+### 3.6 📌 WHAT A FACE ENTRY ACTUALLY HOLDS (the user asked; verified at `flux.rs:372-421`)
+
+16 B, grouped per cell (CSR), ordered by `(chapter, face)`:
+
+| field | what it is |
+|---|---|
+| `magnitude` | flux across the face, **summed over the chapter** |
+| `load` | suspended load — **metres of column thickness, BULK ONLY** |
+| `fluid` | always `WATER` |
+| `chapter` | **the tectonic chapter — NOT the epoch** |
+| `face` | which face |
+| `form` | free/bound — always `Free` |
+| `cause` | the mover — **always `Fluvial`** (nothing else has a producer) |
+
+### 3.7 📌 THREE GAPS against what the user says refinement wants
+
+The user's statement of the requirement (2026-08-05):
+> *"if face says this much x during this epoch entered this side, then refinement wants to know
+> that when it draws a bed and some of the bed was deposited from alluvial on north face under
+> whatever drainage field and elevation at that time."*
+
+1. **Composition.** `load` is bulk. Known; ruling 3's sidecar is the ruled fix, **unbuilt**.
+2. **Time resolution — 25× too coarse.** A face aggregates a whole **chapter** (~25 epochs); units
+   carry the **exact epoch**. *"During this epoch"* is unanswerable. **This is D-6's asymmetry in
+   a THIRD store — the corpus now keeps time at three different resolutions** (unit: epoch ·
+   fact: chapter · face: chapter).
+3. 🔴 **THE PALEO-FIELDS ARE NOT PERSISTED AT ALL — and this appears on no list anywhere.**
+   Drainage is exported as **the last routing only** (`recv`/`area`/`lake` at the final sea
+   stand); elevation likewise survives only as the final surface. So *"under whatever drainage
+   field and elevation at that time"* **has no store to read**. A refiner cannot know the
+   drainage configuration when a bed was laid — only the one at the end of time.
+   ⬦ *Unlike the others this was never a discard; it was never kept. New finding, 2026-08-05.*
+
+### 3.8 ⬦ CONSEQUENCE: items 1 and 3 CONVERGE into one record-schema pass
+
+Opening the mover vocabulary (item 1) and stopping the identity discard (item 3) touch the **same
+struct, the same packed layout, and the same merge key**. With no persistence to migrate (§ 0),
+one pass is cheaper than either was priced at separately. **Do not schedule them apart.**
+
+⬦ **And a distribution may make the MERGE simpler, not harder** — flagged, not designed. Units
+merge today when keys match, which forces species *into* the key. Distributions **accumulate**:
+mass-weighted addition, no identity conflict, no argmax, possibly no species in the key at all.
+Whether the same holds for the mover (also a plurality verdict in the key) is **unknown**.
+
+### 3.9 ⚠ Still open on this item
+
+- **Does the FACE sidecar give refinement what the honesty ruling requires, or only directional
+  provenance?** A face records what **crossed a boundary**; a bed is what **settled in a cell**.
+  If they answer different questions, ruling 3 remains correct and simply does not cover the bed.
+  **Bounded source question, not a design pass.**
+- **What the face record is INTENDED to become** after the slated work subsumes it — the user
+  noted they do not know, and neither does this document. Read `flow.md`'s continuations and the
+  fluvial record-terms slice before designing anything that reads faces.
+- **Whether paleo-drainage / paleo-elevation should be persisted, derived, or neither** (§ 3.7.3).
+  Untouched by any existing plan.
