@@ -3123,6 +3123,43 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   design said ~7.4 M; a 48 % gap with neither pointing at the other — doc-topology
   shape 4, caught by a third audit reading both.*
 
+- **LATERAL QUANTIZATION OF MATERIAL IDENTITY IS UNRULED, AND THE CORRELATION DESIGN
+  ASSUMES IT** (user, 2026-08-04, in discussion — deferred to next session, written here
+  because deferred means written). The correlation design's M-B/M-C "cut" is a **per-voxel
+  winner-take-all draw**: one identity per voxel, inverse-CDF against the blended shares.
+  The user challenged it against the ratified **distribution-first expression** rule
+  (`materials.md` DECIDED 2026-07-21 — integrate the column in metres, then slice; partials
+  survive to the voxel boundary; beds in the fixture world render **mixed**, not snapped to
+  whole voxels): *"i disagree that we want to dither on the full-voxel scale for materials
+  in our pack. we have ratified against that previously."*
+  - **The precise gap:** that ruling was made about the **VERTICAL** case (a bed ending
+    mid-voxel yields a fractional voxel). The cut is **LATERAL** quantization (two
+    materials sharing a bed at one depth, one winning the voxel) — technically unruled.
+    **Whether the principle extends laterally is the user's call**, and the integrator's
+    reading is that it must: not quantizing a contact crossed going down while quantizing
+    one crossed going sideways is an axis-dependent inconsistency.
+  - **The alternative construction, assistant-proposed, not ratified:** use the octaves to
+    shape the **share field** rather than to pick a winner — the local shares wander around
+    the smooth trend with the variogram's texture — and let every voxel express its local
+    shares through the existing eighths machinery. Inside a body the field goes near 1.0
+    (pure voxels, no fictional half-rock); at a body's margin it passes through the middle
+    (mixed voxels, honest at 0.9 m); a true gradational pair renders as mixtures throughout.
+    The mixture-vs-cut *branch* then becomes a continuous parameter — **how sharply the
+    share field is shaped** — still derived from what the materials are.
+  - **If ruled, it revises `2026-08-03-stratigraphic-correlation-design.md` § 3.2** (banner
+    owed there) and adds a sentence to the walk criterion: read **margins**, not contacts.
+    **S2 must not wire the winner-take-all cut before this is settled.**
+
+- **E4-2's MEASUREMENTS SAY K2 IS SLOWER THAN WHAT IT REPLACES — a decision is owed**
+  (2026-08-04; `docs/audits/2026-08-04-e4-2-convergence-study.md`, rescued to main; code
+  unmerged on `worktree-agent-a787b0d7fdeb61b53`). Monotonicity is **not** broken by the
+  limiter-as-projection (that chain is monotone to a = 1e8, with a closed form) — it is
+  broken by the **Picard relinearization at a measured a = 2.0**; the *binding* bound is
+  the **anisotropy** one at **0.85**, where the arm runs **2.2× slower than explicit** at
+  `picard = 4`; and `picard = 1` is not an escape (it overshoots the max principle by 150 m
+  on a supply-limited chain). **Fork for next session: re-price K2-alt vs K3 on these
+  numbers (U-1 pre-committed to neither) or park E4-2.** § 5's world runs are unrun.
+
 - **🔴 THE BUILD-MUTEX HOOK SILENTLY DISCARDS NON-CARGO WORK BUNDLED WITH A DENIED CALL —
   DATA LOSS, not just a stall** (E4-2 agent, 2026-08-04, caught by proofreading): when a
   Bash/PowerShell invocation contains a cargo command **and** other commands (an edit, a
@@ -4793,7 +4830,90 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-03 GEO-3 close (the geo thread's pickup; supersedes GEO-2, archived to history; the bodies block below remains THAT thread's)
+## NEXT SESSION — written at the 2026-08-04 GEO-4 close (the geo thread's pickup; supersedes GEO-3 below)
+
+**Read first:** sweeps hook → `docs/dependency-graph.md` (E4 / P11 / PARENT MATERIALS rows)
+→ this block → **ROADMAP § Observed's two new top entries** (lateral quantization; E4-2's
+verdict) → `docs/audits/2026-08-04-{s0-correlation-measurements,deposition-clock-design,
+e4-2-convergence-study,voxel-explainability-audit}.md` → journals **0154, 0157**.
+
+### The paragraph that matters
+**The record learned what time it is, and the correlation rule got smaller because of it.**
+The user asked one architecture question — *"they were laid down on the same clock. did we
+throw the time away?"* — and it dismantled a design pick: the epoch had never been dropped
+at packing, it had never been *handed to the recorder*, and chapter turned out to be a
+lossy projection of the very clock we were reconstructing by inference. **The clock slice
+shipped the same day at ZERO storage cost** (journal/0154; u24 thickness + u8 raw epoch in
+the second word, which the merge key structurally never reads), and **S1's correlation
+kernel then collapsed to a keyed join** (journal/0157): the partition is the sorted union
+of the epochs the parents stamp, so pinch-out, P-4's onlap feather and seam-freeness all
+fall out with **no branch in the file**. Five correlation picks ruled, all five E4 picks
+ruled, and **the roster philosophy ratified** — materials are labels over regions of a
+continuous term space, relations derived from declared axes, never hand-paired
+(`materials.md` § DECIDED 2026-08-04 + the new `/roster` skill).
+
+### Gate state
+**Full workspace trio run at wrap on merged main** — result recorded in the wrap commit
+(S1 merged on cheap evidence and its batch debt was cleared here). No expected-red list.
+
+### First things — ordered, and two are user calls
+1. **The lateral-quantization ruling** (§ Observed, top). S2 must not wire the
+   winner-take-all cut before it is settled. Everything else in S2 is ready.
+2. **E4-2's fork** (§ Observed): re-price K2-alt vs K3 on the measured numbers, or park.
+   U-1 pre-committed to neither, deliberately.
+3. **S2 — the correlation wiring slice**, once (1) is ruled: `column()` integration, the
+   ≤14-file `record_for` repayment, P-5's retirements (`cell_of`, the near
+   `sample_source_cell` site, the `NearRecordMembership` domain), B-1 at the record extent,
+   fold-per-parent, the veneer's placement (`Borehole::unclocked_m`), **stubs #54's
+   deadline**, CONTENTS + SURFACE re-capture with **deep-time stillness asserted in the same
+   merge**, full trio at the arc-chunk boundary. Then S3, the acceptance walk (Claude drives).
+4. **P2's flip** is now blocked on the **M re-pick alone** (the pits bar died — corrections
+   #98), sequenced with E4-3 so goldens move once — which E4-2's verdict now gates.
+5. **PARENT MATERIALS** (§ Sequenced) gained a live blocker: P-1's continuum predicate
+   cannot be built until materials declare **regions** rather than points.
+
+### Rulings this session (user's words at the records)
+Roster philosophy *"that's it. I'm onboard"* · P-1 M-C-derived · P-2 *"yes"* · P-3 dissolved
+by the clock · P-4 *"an empty stack is a parent whose every chap thickness is 0"* · P-5
+*"yes, ratified"* + the direction rider (*"re-implement the variety in our terrain as the
+result of purposeful standardized operators… most refinement was old native code, not on the
+plugin shape"*) · O-2b for the clock · U-1 K2-with-measurements (fallback **un-committed**) ·
+U-2 *"always implicit, no dual-worlds from one seed"* · U-3 *"The engine owns primitives"*
+(×3, emphatic) · U-4 reframed to **instrument-meaning continuity** · the pits premise
+rejected (*"the dimple test does not make sense"*) · the five roster dispositions · model
+tiering restored (opus for delegated work).
+
+### Falsified — the assistant's own, first
+**#98** the pits bar's unwritten premise (found by sweep, ruled by the user) · **#99** the
+"measurable unconformity gap" — mine, published in journal/0154 and refuted by S0 the same
+day (interior flags are structurally zero) · **#99b** offering a three-way fork whose
+alternatives could not be chosen — *"i don't think this is a real fork"* · and, unfiled
+because it was never recorded as a claim: my swap-mechanism hypothesis for E4-2's
+monotonicity failure was **wrong** (the limiter chain is monotone; Picard is the culprit).
+
+### Owed / unverified
+- **E4-2's branch is unmerged** (`worktree-agent-a787b0d7fdeb61b53`, worktree kept): the
+  kernel compiles, dc-core's 163 pass, **its two structural fixtures fail as designed-for**,
+  fmt/clippy repaired mid-diagnosis. `IMPLICIT_ACCURACY_MAX_EDGE_COEFF` is still a flagged
+  placeholder — **nothing was re-fitted**. § 5's world runs unrun.
+- **stubs #52** (epoch immutable under overprint; alteration-time heir) · **#54** (mirrored
+  bilinear weights — **deadline S2's merge**).
+- The `/roster` skill's § 0 self-update clause is now load-bearing: it has been folded once
+  (the bodies findings) and will need another sweep as the term-schema work moves.
+- `collapse.rs` is 3,006 lines and `creep_operator_probe.rs` 1,069 — extraction proposals,
+  not done mid-arc.
+
+### Machine state at close
+No agents running. **One worktree deliberately kept** (E4-2, above); all others merged,
+removed, branches deleted. A parallel BODIES session shares the checkout — its
+`journal/assets/0156-quant-*` and the `plugins/demo-builder/Cargo.lock` change are theirs,
+untouched. **The geo journal was renumbered 0156 → 0157 at integration** to leave their walk
+assets alone (sixth ordinal collision of the parallel pattern). Build slot free at close;
+lock file is the hook's, left alone.
+
+---
+
+## ~~NEXT SESSION — written at the 2026-08-03 GEO-3 close~~ **SUPERSEDED by the 2026-08-04 GEO-4 block above** (the geo thread's pickup; the bodies block below remains THAT thread's)
 
 **Read first:** sweeps hook (**staleness-sweep + doc-topology are OVERDUE FULL** — held
 2026-08-03 morning by user call while bodies ran spine-audit; the delta since is enormous:
