@@ -5109,9 +5109,13 @@ into a ceiling on what the world can look like.**
 Full trio on merged main at `b4d7514`, run first thing: `clean -p` (dc-core/worldgen/api/client)
 → **fmt 0 · clippy 0 · test 1043 passed / 0 failed / 95 suites, exit 0**. Verified by name:
 `tests/correlation.rs` **ran** (it could not last session), all three probes that LNK-failed
-under contention ran clean, `Compiling` cites main's checkout. **A closing gate was launched at
-the wrap** after the session's only code change (a doc comment in `record.rs`); `fmt` and
-`clippy -p dc-worldgen` were **0** before it — see the close report for its result.
+under contention ran clean, `Compiling` cites main's checkout. **AND THE CLOSING GATE IS ALSO GREEN** — run at `961a505`
+after the day's merges: `clean -p dc-worldgen` → **fmt 0 · clippy 0 · test 1043 passed / 0
+failed / 95 suites, exit 0**, zero `error`/`panicked`/`FAILED` lines, `Compiling` from main's
+checkout. **Three commits post-date it**: two docs-only (the wrap docs, the workflow fingerprints)
+and one doc comment (`grid.rs`'s `default()`-trap annotation), which was covered separately by
+**`fmt` 0 + `clippy -p dc-worldgen` 0** — no code fences, so no doctests. **Nothing is
+unverified.**
 
 ### First things — deepest-first, and the order is a USER RULING
 > *"In next session we do deepest first. **There is no mid-arc.** Time and time again we
