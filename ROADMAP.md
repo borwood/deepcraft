@@ -380,6 +380,85 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### 🔴 THE HONEST RECORD — how the STORES and the PASSES *should* work, regardless of how they do (geo; **user-called 2026-08-05, top of the geo thread**)
+
+**WHAT — the user's words, verbatim, because the framing is the whole instruction:**
+> *"Either in this session or the next, we take a big step back and ask **how the various stores
+> and the passes should work, regardless of how they do now**, in order to **compose an honest
+> record that is shaped to feed an honest refiner**."*
+
+**Note the two halves and that the second governs the first:** not "what is wrong with the
+record" but "what shape must the record be so that a refiner reading it can be honest." The
+consumer defines the store. And *regardless of how they do now* is a licence to design past
+every incumbent — the passes and the stores are both bring-up-era in places, and **existence is
+not standing**.
+
+**WHY — one session of investigation found the same defect at four sites, and nothing on the
+board described any of them.** Full inventory with provenance and confidence markers:
+**`.claude/skills/passes/SKILL.md` § 5** (drafted 2026-08-05 at the user's direction; **its own
+§ 0 sweep is OWED and unrun**). The shape, compressed:
+
+- **The sim computes composition and stores a summary of it — twice.** Transport carries
+  per-species rows; the **face archive** keeps one bulk load figure (D-7), and the **recorder**
+  keeps one argmax winner for the whole net thickness (**D-9**, the headline: 0.6 m of sandstone
+  + 0.4 m of mudstone in one epoch records as **1.0 m of sandstone**; mass survives, identity
+  does not). This is `ARCHITECTURE.md` § *a summary is not an authority* at the deepest layer in
+  the stack, with the unusual property that **the authority is not unavailable — it is in scope
+  at the write.**
+- **Transformation is recorded through the ARRIVAL channel.** The record is strictly top-append
+  with a monotonic clock (load-bearing for the correlation join); the fact ledger is the organ
+  for in-place change. The height-tier weathering (bring-up, 2026-07-19, **default ON**) predates
+  the fact ledger (2026-07-24) and still writes height deltas that the recorder turns into units
+  — so weathering product lands at the **top** of the stack where a weathering front advances
+  **downward** (D-2/D-3). **The user's test:** *"weathering, without transport, cannot create new
+  layers, except perhaps downward."*
+- **Two weathering systems, unreconciled, and the asymmetry is exact:** *the one that acts in the
+  right place records in the wrong shape; the one that records in the right shape acts in the
+  wrong place* (D-1). The height tier weathers the real surface at member grade; the composition
+  tier writes proper declared, cause-carrying facts onto **one hardcoded granite slab**.
+- **And expression invents substance the record never had** (D-4, documented in-tree): the record
+  says granite-loose, the collapse expresses a fine-clastic product. Deposition **discards**
+  composition; expression **invents** it. Same seam, opposite directions.
+
+**UNIFIES — this is upstream of, or fuses with, four live threads:**
+1. **The margin / lateral-quantization question** (§ Observed) — correlating between boreholes
+   blends names that may each already be a flattened mixture, so margin mixtures partly
+   *reconstruct composition the sim discarded*. Strengthens the blend case; indicts the record.
+2. **"Should the record carry distributions"** — reframed 2026-08-05: **not a storage upgrade,
+   stopping a discard.** The tracking is built; only the cost of a wider unit is open.
+3. **The materials / term-space design pass** (`roster` § 2b, user: *"needs designing pronto"*) —
+   a transformation fact needs a declared **edge**; a blend needs a **metric**. Same missing
+   declaration, three consumers. **That pass is a co-requisite, not a successor.**
+4. **The fluvial record-terms slice** — already the named heir for the face archive's
+   composition; D-7 says the sim already knows what it would carry.
+
+**FIRST SLICE — a design pass, not a build, and one measurement that should precede it.**
+- **The measurement (cheap, headless, owed):** what fraction of recorded metres loses its
+  identity at deposition? Sum the non-winning mass at each deposit against total recorded metres.
+  **Nobody has measured it, and no remedy should be argued before it exists.** Also unpriced: the
+  cost of a distributional unit (today a deliberately packed 8 B across ~7.3 M units).
+- **The pass answers, from the refiner backwards:** what must a store hold so expression can
+  invent **arrangement** and never **substance**? Which store owns arrival vs transformation vs
+  flux, and what does each owe? Does the argmax survive? Does `sum(units) == H` survive? What
+  becomes of `R`/`H` if they become **views** of the fact ledger (the corpus's stated end state,
+  `material-behavior.md` § 11's continuation slot, **unowned**)?
+- **Two user rulings are INPUTS to the pass, not open questions in it:** refinement writes no
+  fact and may create **no factless state, by construction** (`passes` § 1); and **a walk verdict
+  is not a model verdict** — *"looks lie all the time here. I care about the model first."*
+
+**CONTINUATION SLOT — this is a slice OF the honest-record arc.** After the design pass:
+the weathering generalisation (the height tier emits transformation facts; `R`/`H` become views),
+whose cause-splitting half (chemical/biotic/frost/dissolution as separate passes) runs into
+**`DeepAxis` still being a closed 18-variant engine enum — E6, unblocked, sequenced, unbuilt**, so
+E6 may be pulled in as a co-requisite. Then the store changes the pass rules, then the refiner
+work that motivated it. **Do not start at the weathering fix** — it is the second slice, and
+starting there re-derives the design from one site.
+
+**⚠ OWED BEFORE ANY OF IT, both cheap:** run `passes` § 0's sweep (never run — the skill is a
+one-session draft and says so), and **verify D-2's trace independently** — it is a single
+unverified read, and four assistant errors in that session all had one cause: *reading the record
+and reporting on the world*, which is D-1's finding wearing a different hat.
+
 ### DIRECTION IS AN AXIS, NOT A RATE — the turn, strafing and backing are ONE arc (bodies; **turn DECIDED 2026-08-04, user; the arc is the reserved continuation**)
 
 **⚠ THIS IS ONE ENTRY ON PURPOSE.** The user asked that the turn ruling be *"slot[ted] with the
