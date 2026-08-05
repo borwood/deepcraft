@@ -8,6 +8,18 @@
 >
 > **Provenance is marked per item.** ✅ = user ruling · ⬦ = integrator analysis, unratified ·
 > ⚠ = open/unknown · 📌 = verified at source this session.
+>
+> **🔴 AND A STANDING WARNING ABOUT THIS DOCUMENT'S AUTHOR.** Five times on 2026-08-05 the
+> integrator **read one source and asserted about another**, and each was caught only by an
+> independent check: the *record* described as the *world* (D-2/D-4) · a **stale doc comment**
+> believed over the code beneath it (`stubs.md` #25 was discharged) · a **grep never run** reported
+> as an absence (D-0 was live on the board) · `DeepConfig::default()` reported as **production**
+> (`tectonic_history` is ON) · Option B described as unreasoned when it was **designed, costed and
+> ruled**. That is the mechanism of **corrections #101** in five costumes: *an absence is a claim
+> about the search; a default is not a configuration; a comment is not the code.*
+> **So: any claim here about "what the shipped world does" or "what the corpus holds" is the class
+> most likely to be false. Check it before building on it.** Items marked 📌 were verified at
+> source; items marked ⬦ were not.
 
 ## 0. The frame — two rulings that govern everything below
 

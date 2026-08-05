@@ -393,6 +393,12 @@ consumer defines the store. And *regardless of how they do now* is a licence to 
 every incumbent — the passes and the stores are both bring-up-era in places, and **existence is
 not standing**.
 
+**⚠ THE ARC'S WORKING DOC IS `docs/audits/2026-08-05-debt-walkthrough-notes.md`** — the
+2026-08-05 characterization session's live walkthrough: the **inventory of 14 items** (4 walked,
+**5–14 unwalked and owed**), every ruling with its provenance mark, and the findings that
+postdate this entry. **Read it before this entry, not after.** *Its § 1 table is the durable
+home of the unwalked items; the close block only points at it.*
+
 **⚠ FIRST, READ `ROADMAP.md:2376` — *WEATHERING IS ONE PROCESS, SAPROLITE IS A STATE ALONG IT,
 NOT A SLICE*, USER'S STRONG LEANING 2026-07-25, requisites MET, gate OPEN.** That entry is the
 destination this arc serves, it has been live for eleven days, and **the 2026-08-05 session
@@ -5081,7 +5087,108 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-04 GEO-4 close (the geo thread's pickup; supersedes GEO-3 below)
+## NEXT SESSION — written at the 2026-08-05 GEO-5 close (the geo thread's pickup; supersedes GEO-4 below)
+
+**Read first:** `docs/audits/2026-08-05-debt-walkthrough-notes.md` (**the session's primary
+artifact — the live walkthrough, its inventory of 14 items, and which are walked**) →
+`.claude/skills/passes/SKILL.md` (**new this session**, §§ 1, 5, 7) → § Sequenced *THE HONEST
+RECORD* → `docs/dependency-graph.md` E6 + the new **E9** row.
+
+### The paragraph that matters
+**No code was written. That was the point.** The session characterized the refactors owed
+before ROADMAP items entrench anything further, and the shape it found is one shape in four
+places: **the deep sim computes something and stores a summary of it.** Transport knows
+per-species load; the face keeps one bulk figure. The recorder builds the whole arriving
+mixture; the unit keeps one argmax winner. Plates advect and uplift repaints every chapter;
+the record stays a flat layer cake. Weathering runs on the real surface at member grade; the
+fact ledger records a hardcoded granite slab. **And the user's ruling that refinement may
+express only what deeptime persisted turns every one of those from a bookkeeping complaint
+into a ceiling on what the world can look like.**
+
+### Gate state — GREEN, and the GEO-4 debt is CLEARED
+Full trio on merged main at `b4d7514`, run first thing: `clean -p` (dc-core/worldgen/api/client)
+→ **fmt 0 · clippy 0 · test 1043 passed / 0 failed / 95 suites, exit 0**. Verified by name:
+`tests/correlation.rs` **ran** (it could not last session), all three probes that LNK-failed
+under contention ran clean, `Compiling` cites main's checkout. **A closing gate was launched at
+the wrap** after the session's only code change (a doc comment in `record.rs`); `fmt` and
+`clippy -p dc-worldgen` were **0** before it — see the close report for its result.
+
+### First things — deepest-first, and the order is a USER RULING
+> *"In next session we do deepest first. **There is no mid-arc.** Time and time again we
+> entrench and forget. We have to accept it is **debt-cleanup time** without losing track of
+> everything it's meant to buy us downstream."*
+
+1. **Finish the walkthrough.** Items **5–14** of the notes' inventory are unwalked: weathering
+   altitude · the three weathering authorities · top-of-stack placement · move C's replacement ·
+   the voxelization contract (+ the user's slots question) · the refinement firewall verification
+   · two never-taken measurements · E4-2's fork + P2's M re-pick · the materials/term-space pass ·
+   housekeeping. **Item 7 (top-of-stack) is cheap and gates items 5 and 6.**
+2. **Read `docs/design/tectonics.md`** — unread by the integrator, and it may settle item 4's
+   (A)-vs-(B) fork before anyone rules.
+3. **The record-schema pass** — items 1 and 3 converged: opening the mover vocabulary and
+   stopping the identity discard touch the same struct, layout and merge key.
+4. **Correlation extraction → `dc-core`** (E9) — ruled, and it wants doing **before S2** lands on it.
+
+### Rulings this session (the user's words)
+Deepest-first / no mid-arc · **correlation kernel → `dc-core`** · **F8 dissolved**: *"relief that
+is not interpreting and interpolating facts is categorically wrong for refinement… the aim of our
+procedural tricks — refinement — is honest expression of the fact stores"* (move C is
+**categorically wrong**, the smoother interim world is *"good, correct, desired"*) · **"looks lie
+all the time here. I care about the model first"** (a walk verdict is not a model verdict) ·
+**"any share of recorded metres getting relabelled is too much"** · **refinement reads deeptime's
+outputs and never runs a process**; there is **no badlands operator** — the operator is general
+and dense dissection is a region of its output space · **no persistence exists**, so "we'd have to
+migrate" is not an argument that exists · paleo-fields **parked for exploration**, footprint and
+necessity both unestablished.
+
+### Falsified — the assistant's own, first
+**corrections #101** files two absence-claims under one mechanism (*an absence is a claim about
+the SEARCH, not the world*; compliance, not coverage): D-0's *"the reason was never written
+down"* — it is `ROADMAP.md:2376`, USER'S STRONG LEANING, 2026-07-25, eleven days live — and
+D-2's *"nothing durable says made-here vs brought-here"* — every unit carries 3 mover bits with
+`MOVER_NONE`, and `stubs.md` #25 was **discharged** three days before I read a stale comment
+saying otherwise. **Also falsified in-session and recorded in the notes:** *"three substantive
+off-flags, and they are exactly the set this session circled"* — **`tectonic_history` is ON in
+production** (`production_config_base`; the `--tectonics` switch is **vestigial**), so the tidy
+pattern was an artifact of reading `DeepConfig::default()` and reporting on production · *"run
+the process"* in the three-way split (refinement runs none) · framing D-9 as unreasoned (it was
+designed, costed as Option B, and **ruled FACE** 2026-08-02) · calling the materials pass a
+co-requisite of the margin work when smooth-as-identity may make it a successor.
+**Five of these share one mechanism: reading one source and asserting about another.** Treat any
+2026-08-05 claim about *"what the shipped world does"* as needing that check re-run.
+
+### The user's two parting observations — carried, undiagnosed
+- ***"Tectonics still doesn't do what I expect it to do."*** Undiagnosed; the expectation gap
+  itself is the thread. Note the session's finding that the machinery **is on** and the record
+  still does not receive it.
+- ***"Nothing's getting folded on the record level for sure, least of all in a way refinement
+  knows how to represent."*** Both halves matter: nothing folds, **and** the expression tier has
+  no vocabulary for folding if it did.
+
+### Owed / unverified
+- **The `passes` skill's §§ 1 and 7 POSTDATE its own sweep watermark** and say so; § 7 is
+  explicitly assistant-originated. The sweep found it *"right about the code, wrong about the
+  corpus"* — treat novelty claims in it as the class most likely to be false.
+- **The FACE-vs-UNIT source question** (notes § 3.9): does the face sidecar give refinement what
+  the honesty ruling requires, or only directional provenance? **Bounded source question.**
+- **Three measurements, none taken:** the identity-loss fraction · a **sparse** per-unit
+  distribution re-cost against the post-slice-3 baseline · the mixture-cap count.
+- **`ARCHITECTURE.md`'s indictment enumeration is incomplete** (E6 row) — completing it is a doc
+  amendment, no code.
+- Carried from GEO-4: **E4-2's fork** (re-price K2-alt vs K3, or park; worktree kept) and **P2's
+  M re-pick**. Untouched today.
+- **Housekeeping:** `ROADMAP.md` at **2.2×** its threshold and `spines.md` now **over** it —
+  archiving is a wrap-time job that did not happen today.
+
+### Machine state at close
+No agents running. **One worktree deliberately kept** (E4-2, `agent-a787b0d7fdeb61b53`); three
+other directories under `.claude/worktrees/` belong to the **parallel BODIES session** and were
+left alone. Build slot free at close, no lock, nothing on port 7777. A parallel bodies session
+shares the checkout — its `TRUNK_TURN_WINDOW_S` commit is theirs.
+
+---
+
+## ~~NEXT SESSION — written at the 2026-08-04 GEO-4 close~~ **SUPERSEDED by the 2026-08-05 GEO-5 block above** (its gate debt is CLEARED — see there; its E4-2 fork and M re-pick carry forward)
 
 **Read first:** sweeps hook → `docs/dependency-graph.md` (E4 / P11 / PARENT MATERIALS rows)
 → this block → **ROADMAP § Observed's two new top entries** (lateral quantization; E4-2's
