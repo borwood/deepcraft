@@ -4852,9 +4852,18 @@ ruled, and **the roster philosophy ratified** — materials are labels over regi
 continuous term space, relations derived from declared axes, never hand-paired
 (`materials.md` § DECIDED 2026-08-04 + the new `/roster` skill).
 
-### Gate state
-**Full workspace trio run at wrap on merged main** — result recorded in the wrap commit
-(S1 merged on cheap evidence and its batch debt was cleared here). No expected-red list.
+### Gate state — ⚠ PARTIAL, AND THE DEBT CARRIES
+**`fmt --all --check` = 0 and `clippy --workspace --all-targets --release -D warnings` = 0
+on merged main, verified.** The **test stage could not complete**: three attempts, three
+`LNK1104` link failures on three *different* example binaries
+(`denudation_probe`, `member_diversity_probe`, `pore_decorrelation_probe`) — each the one
+the **parallel bodies session was running at that moment**. Probe examples carry
+`test = true` (the probe doctrine), so `--lib --tests` cannot skip them either; a running
+exe cannot be relinked. **This is machine contention in the shared `CARGO_TARGET_DIR`, not
+a code red** — no test failed; nothing linked. **S1's batch debt is therefore NOT cleared
+and carries to S2's arc-chunk gate** (its own boundary anyway). A lib-only run was started
+at close; its result is in the wrap's final commit message if it landed.
+**First act next session: the full trio on a quiet machine, before anything else merges.**
 
 ### First things — ordered, and two are user calls
 1. **The lateral-quantization ruling** (§ Observed, top). S2 must not wire the
@@ -5183,3 +5192,18 @@ adopted from the geo session's fingerprint: **explicit paths, never `add -A`** (
 session paid for it once: a stray client log).
 
 ---
+
+- **PROBE EXAMPLES WITH `test = true` MAKE THE GATE UNRUNNABLE WHILE A SIBLING RUNS ONE**
+  (geo wrap, 2026-08-04 — three attempts, three different exes). The probe doctrine puts
+  `test = true` on measurement examples so the gate can see their assertions; the
+  consequence, unnoticed until parallel sessions ran probes and gates simultaneously, is
+  that **every probe binary is a gate build target**, and a *running* probe cannot be
+  relinked (`LNK1104`). `--lib --tests` does not skip them (they ARE test targets). So a
+  gate and a probe run cannot coexist in the shared `CARGO_TARGET_DIR`, and the failure
+  wears a compiler error's clothes rather than announcing contention.
+  **Interim rule: treat `LNK1104` on an example as machine contention, never a red — check
+  `Get-Process` for the named probe before diagnosing anything.** Fix shapes, none owned:
+  a per-session target dir for probe RUNS · the mutex hook covering probe execution as well
+  as builds (it currently guards `cargo` invocations, and `cargo run --example` is one, so
+  this may already be closable) · or a gate profile that excludes example targets when a
+  sibling is live.
