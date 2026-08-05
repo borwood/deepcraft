@@ -2116,6 +2116,34 @@ mod tests {
             std::hint::black_box(i);
         }
         let derived_ns = t0.elapsed().as_nanos() as f64 / f64::from(n);
+        // **The defect, measured in the same binary** (2026-08-04). Identical
+        // loop, one difference: the ownership table is rebuilt inside it, which
+        // is what this function did per body per frame until the hoist. Same
+        // binary, same code layout, same allocator state — the cross-binary
+        // comparison was confounded by layout (`sample_clip`, untouched by the
+        // change, differed 14 % between the two builds).
+        let t_reb = Instant::now();
+        for i in 0..n {
+            let mut s = state.clone();
+            s.advance(1.0 / 60.0, Some(&gait), 1.47, rate);
+            let rebuilt = PoseOwnership::of(Some(&gait), &[&idle]);
+            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle], rate, &rebuilt));
+            std::hint::black_box(root_offset_m(
+                Some(&gait),
+                0.0,
+                s.stepped_froude,
+                s.stepped_phase(Some(&gait), rate),
+                Posture::Standing,
+            ));
+            std::hint::black_box(i);
+        }
+        let rebuilt_ns = t_reb.elapsed().as_nanos() as f64 / f64::from(n);
+        // …and the pre-pass on its own.
+        let t_own = Instant::now();
+        for _ in 0..n {
+            std::hint::black_box(PoseOwnership::of(Some(&gait), &[&idle]));
+        }
+        let ownership_ns = t_own.elapsed().as_nanos() as f64 / f64::from(n);
         let t1 = Instant::now();
         for i in 0..n {
             std::hint::black_box(sample_clip(&walk, f64::from(i) / 60.0, rate));
@@ -2125,8 +2153,13 @@ mod tests {
         println!(
             "\nper-frame pose cost, one body: DERIVED gait + one clip layer + the \
              root offset = {derived_ns:.0} ns; the retired two-clip sample it \
-             replaces = {clip_ns:.0} ns ({:.2}x)",
-            derived_ns / clip_ns.max(1e-9)
+             replaces = {clip_ns:.0} ns ({ratio:.2}x)\n  \
+             the SAME loop rebuilding the ownership table per call (what this ran \
+             until 2026-08-04) = {rebuilt_ns:.0} ns, i.e. the hoist removed \
+             {saved:.0} ns ({pct:.1} %); the pre-pass alone = {ownership_ns:.0} ns",
+            ratio = derived_ns / clip_ns.max(1e-9),
+            saved = rebuilt_ns - derived_ns,
+            pct = 100.0 * (rebuilt_ns - derived_ns) / rebuilt_ns.max(1e-9)
         );
         assert!(
             derived_ns < 20_000.0,
