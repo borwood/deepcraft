@@ -1699,6 +1699,19 @@ measure surface penetration); not the solve production runs.
 
 
 ### 43. the-swing-lift-fades-with-speed-because-nothing-owns-stopping — *added 2026-08-03 (gait member #1 slice two, journal/0147; the builder found the hole and could not file it)*
+> **⚠ THE BLAST RADIUS BELOW ASSUMES THIS LIFT REACHES THE VIEWER. MEASURED 2026-08-04: 92 % OF IT
+> DOES NOT** (`docs/audits/2026-08-04-longleg-swing-probe.md` § 6). The gait derives a mid-swing
+> foot clearance of **+12.66 mm**; the rendered sole envelope is **+0.99 mm** — the foot-IK
+> correction cancels it before it is drawn. So this entry's whole speed-fade argument is about a
+> quantity that is **already almost invisible on screen at any speed**, and the freeze-with-a-foot-
+> in-the-air failure it guards against would be a ~1 mm freeze, not a full-clearance one.
+> **Not a refutation of the stub** — `swing_gain` is still a stand-in for a stop transition nobody
+> owns, and the design pass is still wrong about `v → 0`. It is a correction to the *magnitude*
+> everything downstream has been reasoning about.
+> **⚠ And the cause is open, not diagnosed.** The probe measured *that* the correction cancels the
+> lift; *why the IK is correcting a SWING foot toward the ground at all* is not established, and
+> the obvious hypothesis — that ground-following should apply to the stance foot only — is the
+> **integrator's inference, not the probe's finding.** Do not build on it without measuring it.
 - **What it fakes:** `GaitVector::swing_gain` (`dc-api/src/bodies/gait/evaluate.rs:227`) scales the
   mid-swing foot lift by `sin θmax(Fr)` against its value at the duty law's published normal-walk
   anchor `Fr = 0.25`, so the lift fades as the body slows. **It is standing in for a stop

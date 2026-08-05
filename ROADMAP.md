@@ -3080,6 +3080,39 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🔴 THE FOOT-IK CANCELS 92 % OF THE DERIVED SWING CLEARANCE, AND INVERTS THE KNEE PROFILE —
+  DIAGNOSED 2026-08-04** (`docs/audits/2026-08-04-longleg-swing-probe.md`; found by the user at the
+  station-2 walk: *"the longer legged one has a little weirdness in the forward swing… a mini bend
+  and correction back to straight and back to bent"*).
+  - **Mechanism, measured.** `character.rs:313`'s seated guard (`adjust.abs() > 1e-3`) sits on the
+    two-bone solver's **singular point**: the posture bake stands every body at chain reach, so a
+    grounded sole is at `d = reach` *exactly*, where `dφ/dd → ∞`. The gait's sole crosses ±1 mm
+    **six times a cycle**; the decision flips `Seated ↔ Applied` at each crossing and the knee jumps
+    **5.02°** (longleg) while **the sole does not move** — rendered envelope ±1 mm, but the knee
+    joint translates **21.8 mm in one sample**. Closed form predicts 5.17°, measured 5.02°.
+  - **The bigger number is not the artifact.** The gait derives **+12.66 mm** of mid-swing
+    clearance; **+0.99 mm** is rendered. The IK also **inverts the knee profile** — the gait's knee
+    is a triangle most-bent at mid-swing, the rendered track is a **W** that reaches **−0.5°
+    (nearly straight) at mid-swing**. *The rendered gait is not the derived gait.*
+  - **Ruled out with numbers:** the half-voxel window by **33×**; B7's `d_min` by **5.2×**
+    (`BeyondFlexion` never returned); quantization is **not the cause but is the amplifier**
+    (5.02° continuous → 12.26° @60 fps → 19.21° @12, and it decides how many of the six crossings
+    survive: 4 @60, 2 @12).
+  - **⚠ THE COMPARATIVE DID NOT REPRODUCE, and the probe said so.** Stout's jumps are **larger**
+    (7.31° continuous, 20.74° @60). The phenomenon is **universal, not longleg-specific**; the
+    probe could not determine from geometry why the user saw it on one body. Its inference —
+    legibility (longleg's swing lasts 0.52 s in 31 poses against stout's 0.29 s in 17, with 2.3×
+    longer bones) — is **flagged as inference, not measurement**.
+  - **Speed-invariant** across the walk band (<0.03 cycle drift while the period changes 24 %),
+    which is what rules out aliasing. Above the walk/run transition the root stops bobbing, the
+    sole never goes below ground, and the jump collapses **31×** to 0.16°.
+  - **NOT DIAGNOSED: why the IK corrects a SWING foot toward the ground at all.** The hypothesis
+    that ground-following belongs to the stance foot only is the **integrator's, unmeasured**.
+    That is the next probe, not the next fix.
+  - **Not sequenced as work** — the user's verdict was *"it's non blocking at any rate."* Banners
+    stamped on `stubs.md` #43. Probe retained: `crates/dc-client/src/swing_probe.rs`, gate cost
+    **0.14 s**.
+
 - ~~**ONE COUNT, TWO VALUES: the record's total unit count**~~ **✅ RESOLVED 2026-08-04
   (S0 § g): STALE, NOT WRONG — the settled count is 7,304,581, measured by BOTH
   instruments in agreement** (including the one that produced 10.95 M). The drop
