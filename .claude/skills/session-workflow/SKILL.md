@@ -1295,3 +1295,42 @@ Three practices, each proven in the recovery:
   Fifteen-odd stamps went down that day; every one can be walked back to the audit
   row that produced it from the stamped end — which is the two-directional-pointer
   doctrine applied to the stamps themselves.
+
+## Three clauses folded at the 2026-08-04 geo wrap (user-greenlit fingerprints)
+
+**1. "Standing by" is not a state an agent may end its turn in — put it in the BRIEF, not
+in a rule someone must remember.** Two agents in one session ended their turns waiting on
+things that could never wake them (a "background watcher"; a Monitor that never tripped),
+and the second did it *after* being resumed with explicit orders. The dispatch brief
+template therefore carries this verbatim, in every brief that can hit the build slot:
+
+> A mutex denial's 60–120 s retry loop **is** your queue place: retry in your own turn,
+> keep doing non-cargo work between retries, and never yield to a watcher, monitor or
+> sleep. If the slot never frees, **return your report** with what you measured, what you
+> could not, and the batch debt recorded — "standing by" is not a state you may end your
+> turn in.
+
+*Why the brief and not a doctrine line: the harness never re-invokes a stopped agent from
+its own watcher, so the failure is silent and costs a whole slice. The rule has to travel
+with the work, not sit in a document the agent may not read.*
+
+**2. An options block owes its deciding MEASUREMENT.** Before presenting the user with a
+fork, state what measurement would settle it and whether that measurement **exists**. If it
+does not, there is no fork — there is a recommendation and a dispatch. *(corrections #99b:
+a three-way fork was offered while the message's own body said the defect's owner was
+unknown; only one branch was choosable. The house one-decision-per-message format makes
+this failure EASIER, not harder — a well-formed options block reads as diligence even when
+its alternatives are hollow.)* The check is one question at composition time: **"if the user
+picks the branch I am not recommending, do I know enough to execute it?"** If no, do not
+offer it.
+
+**3. The cross-session findings doc — a named pattern, proven 2026-08-04.** When a parallel
+session's work bears on a domain **another session owns**, it does not edit that domain. It
+writes `docs/audits/<date>-<topic>-findings.md` containing findings and questions only,
+with each item marked **user ruling · user leaning · that session's analysis**, and an
+explicit line saying which session owns the answer. The owning session dispositions every
+question, applies what it accepts, and **stamps the findings doc's header with the
+answers**. *Worked end to end the day it was invented (the bodies session's roster
+findings → five dispositions → ratified → folded → banner back). It is corrections #65's
+rule — a user design may not be superseded by an implementation slice — generalized to
+sessions: the finder reports, the owner rules.*
