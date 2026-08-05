@@ -380,6 +380,87 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### DIRECTION IS AN AXIS, NOT A RATE — the turn, strafing and backing are ONE arc (bodies; **turn DECIDED 2026-08-04, user; the arc is the reserved continuation**)
+
+**⚠ THIS IS ONE ENTRY ON PURPOSE.** The user asked that the turn ruling be *"slot[ted] with the
+gait-space transition arc, **as long as that's a durable association and we don't lose it**."* A
+cross-reference between two entries is exactly what gets lost, so the slice and its arc share an
+entry and cannot be picked up separately.
+
+**THE ARC — WHAT.** The gait derives everything from **Froude = v²/(gL)**, which uses `|v|` only,
+so gait is **direction-blind by construction**: a body walking backwards at 1.35 m/s gets a
+bit-identical gait to walking forwards, and strafing gets the same again. **A turn is a continuous
+change of body-frame velocity direction; strafing is that direction held at 90°, backing at 180°.**
+They are one axis — *how gait responds to velocity direction in the body frame* — and today the
+gait sees only its magnitude. The user: *"one need for games is going to be differences in movement
+between relative axis of movement — strafing, walking backwards — these look different and are
+physically different in reality and often in games."* The shape is **give the gait a body-frame
+velocity vector instead of a scalar**, with the pack declaring how its species responds along that
+axis: the same move as the speed ladder, one dimension over.
+
+**FIRST SLICE — delete `TRUNK_TURN_WINDOW_S` (DECIDED 2026-08-04, announce-then-go satisfied).**
+The client renders `facing_yaw` directly; turn behaviour becomes pack/controller-owned.
+- **What it will look like, announced and accepted:** bodies **snap-turn**. The user's ruling:
+  *"snap-turning is good enough for minecraft. i don't care that it's ugly just like i don't care
+  that we don't have grass yet: **the point is honesty and not entrenching and enshrining and
+  obscuring a thousand little proxies**."*
+- **Why it is aligned — three, and the first is the user's:** (1) a world-global turn rate
+  **forecloses content** — a golem *should* pivot instantly, and a fixed 0.22 s makes that
+  unauthorable; (2) it is an **opinion sitting in the engine**, the mirror of `dependency-graph.md`
+  § 0b; (3) it is in the **wrong layer entirely** — `bodies.md`'s three-layer split already puts
+  volition in the **controller**, and turning was implemented in the renderer.
+- **Measured, and it is why the smoothing is dishonest:** velocity is assigned **straight from
+  intent with no inertia** (`dc-api/src/character.rs:300-310`, *"no inertia, like the player"*) and
+  `facing_yaw` is a **bare assignment** from travel (`:342`). **The movement already snaps; only the
+  render is smoothed.** The lag the user saw at running speed (*"you can imagine it's still turning
+  even though the body… has covered some ground"*) is the render telling the truth about that.
+- **A-2 debt inside the slice:** `body.rs`'s comment calling the turn rate *"cosmetic and free to
+  tune"* was true while the trunk was decoration and stops being true the moment turning is a
+  movement constraint. It owes a correction in the same commit.
+- **A-1, sixth instance in this arc** (after the four absolute-metre constants, the world-global
+  walk speed, gravity, `ANIM_FPS`).
+
+**CONTINUATION SLOT — after the delete, the arc continues with:** the pack-declared turn
+constraint (what replaces the deleted constant, and it belongs on the **movement**, not the trunk
+yaw — an animal cannot reverse its velocity instantly, and that is a fact about the body); then
+**relative-axis gait** (backing has a shorter stride, a different duty factor and a higher
+metabolic cost; lateral is a different gait entirely, not a modified walk). **Do not solve turn and
+strafe as two features** — that is the mistake this entry exists to prevent.
+
+**Blocked on nothing. The user expects to open this soon, possibly next session.**
+
+### THE SECOND FIXTURE PACK — the missing control (**decision DEFERRED to next session, user, 2026-08-04**)
+
+**WHY.** There is only one pack, so **nothing tests whether a capability is actually general**.
+Every engine-vs-pack call this session was settled by argument, not by evidence. A second pack —
+**deliberately unphysical**, existing to disagree — falsifies engine assumptions that introspection
+cannot find. The user's golem framing is this instinct: *"assume a mod should be able to make a
+robot or a golem alongside a physically realistic person or animal."*
+
+**IT HAS ALREADY EARNED ITS KEEP, BEFORE EXISTING.** `dc-api/src/bodies.rs:92` —
+`pub const DEFAULT_BODY_PLAN: &str = "dc:body/biped"` — **the engine hardcodes a default-pack
+content identifier** and uses it in `CharacterState::new`, the serde default for `body_plan`, and
+`host.rs:1155`'s spawn fallback. **A-7's shape** (`DEEP_BASEMENT = GRANITE` in new clothes): a world
+with no `dc:` namespace has an engine pointing at a body that does not exist. **First known
+finding; there will be more, and the inventory is the deliverable.**
+
+**THE SHAPE NEEDS NO NEW MECHANISM.** `authority.rs::load_body_packs` already treats the pack as a
+plugin — `ConsumerId::new(ConsumerKind::Plugin, "default-pack")` holding
+`RegistryDefine { namespace: "dc" }`, emitting a command batch through the ordinary registry door,
+and there are already **two** batches (`default_body_pack()` + `experiment_body_pack()`). A second
+pack is a third batch with its own consumer and its own namespace grant. `plugins/demo-builder`
+proves the WASM path end to end, including the boundary **rejecting** an ungranted namespace.
+
+**THE OPEN DECISION (user's, next session):** *"the second pack decision will be worked out next
+session. **it's worth a small convo about file format even if we build a temp in the existing
+shape**."* So: a short file-format conversation is **wanted**, and it does **not** block building a
+temporary pack in the existing compiled-batch shape.
+- **Integrator's recommendation, on the record:** build in the existing shape first. Designing the
+  file format against **one** pack is *"a registry designed before its callers exist"*; the second
+  pack is the instrument that tells us what the files must express. The user's own intuition —
+  *"one file per pass, per material, likely per body (except bodies generated by passes)"* — should
+  be a **finding**, not a guess.
+
 ### PER-CYCLE QUANTIZATION — the 12 fps call, taken (bodies thread; **DECIDED 2026-08-04, user**)
 
 **WHAT.** Retire `ANIM_FPS = 12.0` as a fixed constant (`dc-client/src/body.rs:70`). Quantization
@@ -5054,7 +5135,93 @@ live and caught both of today's collisions. Gate logs: `%TEMP%\wrap-trio.log`
 
 ---
 
-## NEXT SESSION — written at the 2026-08-03 BODIES close (⚠ **THE PARALLEL PATTERN ENDS HERE — next session is SINGLE-THREAD** and holds BOTH this block and the GEO-3 block above)
+## NEXT SESSION — written at the 2026-08-04 BODIES close (the bodies thread's pickup; the geo thread's is its own GEO-4 block. **Both threads ran in parallel all day without incident** — the previous block's "single-thread" meant the message format, not the session)
+
+**Read first:** sweeps hook → `docs/dependency-graph.md` **§ 0a, § 0b** (the partition rulings — three
+landed today) → this block → ROADMAP § Sequenced **"DIRECTION IS AN AXIS, NOT A RATE"** and **"THE
+SECOND FIXTURE PACK"** → journals **0151, 0153, 0155, 0158** → corrections **#100**.
+
+### The paragraph that matters
+**Four slices shipped and the engine/plugin line got its rules.** B7 joint limits (0151), B6-a the
+mass integral (0153), per-cycle quantization (0155, **walked and verdicted**), and the ownership
+hoist (0158). But the durable output is the **partition doctrine**: the **opinion-vs-absence test**
+was proposed, ratified and immediately used; a **third answer — dev/creative tooling** — was added
+when it hit a case that was neither; **bodies were seated in the engine/plugin field**; and the
+**pack was ruled a scratch pad** with **announce-then-go** replacing the additivity bar I had
+invented. Workspace **1046 passed / 0 failed / 95 suites**, exit 0.
+
+### Ratified this session, in the user's terms
+- **Per-cycle quantization** — `N = round(cycle × target_fps)`, floor **N ≥ 2** (*"there can't be
+  fewer than 2 frames per cycle"*), target fps is a **client** setting, the pack may declare a
+  per-body **max**, per-bone rate by ownership, and *"a one-off is just a cycle that doesn't repeat."*
+- **The OPINION-vs-ABSENCE test** — opinions to the pack, absences stay engine-side as loud stubs.
+  Plus the **third answer**: *"correct that it's dev/creative-tooling."*
+- **Bodies are in the engine/plugin field**, and **the evolution system lives in the same earth sim
+  pack** as geo's.
+- **THE PACK IS A SCRATCH PAD** — *"we can't be sentimental about things just because they exist in
+  an arbitrary shape right now"* — with the protocol: **announce what changes, how, and why it is
+  aligned; then the user says go.** *"The engine is a game engine, not a game."*
+- **The turn** — *"snap-turning is good enough for minecraft… the point is honesty and not
+  entrenching and enshrining and obscuring a thousand little proxies."* Behaviour is pack; the
+  engine's neutral is **instant**.
+- **Loci are five, not three** (emergent practice, ratified in principle).
+
+### Falsified — the assistant's own, first
+**#100** *"the walk loop has no stop channel — the observer has none at all"* — false; the in-game
+console has always existed and `freeze_character` already ships. **The doctrine describing the
+observer was written entirely by the driver**, which has no keyboard in the world. The user's own
+words were narrow and accurate; the assistant's transcription widened them.
+**Uncorrected in a numbered entry but recorded at their sites:** the **additivity bar** I invented
+and the user withdrew (`dependency-graph.md` § 0a); **`bob_damping`'s heir was wrong** (stubs #50 —
+density is not stiffness, so B6 will never close it); and I **re-derived the byte-identity-as-target
+trap three times in one day** in a corpus that already names it.
+
+### First things next session — ordered
+1. **DIRECTION IS AN AXIS, NOT A RATE.** The turn delete is ruled and ready; the user expects to
+   open the arc **soon, possibly next session**. *One entry on purpose — do not pick up the delete
+   without the arc.*
+2. **The second fixture pack** — decision deferred here by the user, **and a small file-format
+   conversation is wanted** even if a temp pack is built in the existing batch shape.
+3. **The `body.rs` extraction** — 3,653 lines (**5.2×**), three-module cut proposed by the hoist
+   agent (sample / rig / probe), never taken. A file move wanting its own commit and gate.
+4. **The dev-surface gating concept** — owed a design pass. No gamemode/server-rule/world-setting/
+   player-permission concept exists; its only trace is a comment at `authority.rs:360`.
+
+### Owed / unverified — read before trusting anything
+- **The IK cancels 92 % of the derived swing clearance and inverts the knee profile** (Observed,
+  diagnosed). **NOT diagnosed: why the IK corrects a SWING foot toward the ground at all** — the
+  stance-foot-only hypothesis is the **integrator's, unmeasured**. Next probe, not next fix.
+- **The build-slot hook did not hold.** Two cargo processes coexisted for most of the hoist's run,
+  observed independently by the agent and by me, and it produced a **false RED** in that agent's
+  gate. The mechanism the mutex exists to prevent. *Live defect, unfiled as work.*
+- **`recorder.rs:832`** is the one unresolved stand-in marker (geo's file, handed up).
+- **`target_tick` is an unindexed A-4** — the host honours it, every caller hardcodes `None`.
+- **The turn slice carries an A-2 debt**: `body.rs`'s *"cosmetic and free to tune"* comment expires
+  the moment turning becomes a movement constraint.
+
+### This session's numbered artifacts
+Journals **0151, 0153, 0155, 0158** (0156 **unused** — walk assets briefly carried it, renamed to
+0155; geo took 0157) · corrections **#100** · stubs **#45–#51, #53** · audits
+**2026-08-04-stand-in-marker-control-scoping**, **-longleg-swing-probe**,
+**-walk-stop-channel-design**, **-roster-skill-bio-and-parent-findings** · assets **0155-quant-***.
+
+### Machine state at close
+No agents of mine running; all my worktrees removed and branches deleted. **One foreign worktree
+remains — `agent-a787b0d7fdeb61b53`, the parallel session's, left alone.** No `dc-client`, port 7777
+free, no `.agent-build.lock`. Working tree clean and **pushed**. One foreign dirty file,
+`plugins/demo-builder/Cargo.lock`, untouched all session as it has been for two.
+
+---
+
+## ~~NEXT SESSION — written at the 2026-08-03 BODIES close~~ **SUPERSEDED by the 2026-08-04 BODIES block below**
+
+> **⚠ AND ITS "SINGLE-THREAD" WAS MISREAD BY THE VERY SESSION IT ADDRESSED.** That phrase meant the
+> **one-topic-per-message conversation format**, not one session thread; the 2026-08-04 session read
+> it as "stop running parallel sessions" and briefed the user on a conflict that did not exist. The
+> geo thread ran in parallel all day without incident. *A close block is a handoff, and this one
+> handed over an ambiguity in its own headline — corrections #71's shape, in the format layer.*
+
+## ~~NEXT SESSION — written at the 2026-08-03 BODIES close~~ (superseded; original heading preserved below for the grep trail) (⚠ **THE PARALLEL PATTERN ENDS HERE — next session is SINGLE-THREAD** and holds BOTH this block and the GEO-3 block above)
 
 **Read first:** sweeps hook → `docs/dependency-graph.md` § 2b (rows **B7**, **B8**, and **B6**'s
 eight inbound edges) → this block → the GEO-3 block above → journals **0142, 0144, 0147, 0148**

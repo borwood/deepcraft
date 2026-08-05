@@ -1,7 +1,6 @@
 # Ownership is a property of the plan, and we were asking it sixty times a second
 
-*(pending — SLUG-ONLY, no ordinal: a parallel user session shares this checkout and
-ordinal collisions have happened repeatedly. The integrator numbers it.)*
+*Assigned **0158** at the 2026-08-04 bodies wrap. (0156 is an unused ordinal — the walk assets briefly carried it; renamed to 0155, the entry they illustrate.)*
 
 > blogworthy: **lens 3 (reflexions in a deepsim codebase)** — the smallest possible
 > example of a defect class this project keeps re-finding: work whose *granularity*

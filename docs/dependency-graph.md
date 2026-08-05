@@ -148,6 +148,26 @@ backdoor commands with a high degree of intentionality**."*
   instrument shipped before it (the console, `halt_all`, teleport, world-fill) is a **future
   consumer of it**, not an exception to it.
 
+**✅ FIRST PLACEMENT RULED BY THIS TEST — THE TURN RATE, AND IT MOVED *OUT* OF THE ENGINE (user,
+2026-08-04; ruled in conversation at the station-2 walk, recorded here and in ROADMAP § Sequenced
+"DIRECTION IS AN AXIS, NOT A RATE").** *"Anything like animal/agent **behavior** is actually a pack
+opinion. Our rate of turning may as well be **instant** for engine with no pack opinion."*
+- `TRUNK_TURN_WINDOW_S = 0.22` (`dc-client/src/body.rs:102`) is a bare world-global constant with no
+  derivation, no citation and no speed coupling — an **opinion sitting in the engine**, which is the
+  mirror of the defect § 0b was written to catch. **A-1, sixth instance in this arc.**
+- **The engine's neutral is INSTANT** — no interpolation, facing = travel. Consistent with B7's
+  precedent (supply what you can derive, say `Undetermined` for the rest).
+- **And it is in the wrong LAYER, not merely the wrong side:** `bodies.md`'s three-layer split
+  already puts **volition in the controller**, which is plugin-driven by construction. Turning was
+  implemented in the **renderer**, which has no business holding a view at all.
+- **Measured while ruling it:** velocity is assigned straight from intent with **no inertia**
+  (`dc-api/src/character.rs:300-310`) and `facing_yaw` is a **bare assignment** (`:342`). The
+  movement already snaps; only the render was smoothed. *We were smoothing the one part that is not
+  physical.*
+- **Provenance recorded because a lost one is how corrections #71 happened:** user ruling, in
+  conversation, 2026-08-04, at the quantization walk; appearance consequence announced and accepted
+  under `CLAUDE.md` § Conventions' announce-then-go.
+
 **OPEN, not settled here:** which side each of `stubs.md` #44's four knobs lands on once the test is
 applied — `cadence_scale` appears to decompose (engine inertia denominator, pack actuation
 numerator), `swing_flexion` appears to be pack actuation, `duty_exponent` half-decomposes
