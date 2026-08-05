@@ -544,6 +544,23 @@ pub fn sea_level_at(cfg: &DeepConfig, it: u32) -> f64 {
     SEA_LEVEL_M + cfg.sea_level_amp * phase.sin()
 }
 
+/// ⚠ **THIS IS NOT WHAT THE GAME RUNS. Read
+/// [`production_config_base`](super::field::production_config) before quoting any flag
+/// default as "what the shipped world does."**
+///
+/// `field.rs::production_config_base` builds the production `DeepConfig` and **explicitly
+/// overrides several of the flags below** before falling through to `..DeepConfig::default()`.
+/// As of 2026-08-05 it flips **`biotic`, `erodibility`, `tectonic_history` and `full_agents`
+/// ON**, sets `calibrated_rates` **OFF** deliberately (not merely by default), and leaves
+/// `weather_inventory` to fall through **off**. So the shipped world runs with tectonic history
+/// **enabled** — and `dc-client`'s `--tectonics` switch sets true over true, a vestige of when
+/// it was flip-only.
+///
+/// **Why this warning is here rather than in a doc:** a session read `Default::default()`,
+/// reported it as production, published a false pattern about which capabilities are switched
+/// off, and was corrected only because the user asked it to check. *A default is not a
+/// configuration* — the same class as `corrections.md` #101 (an absence is a claim about the
+/// search) and the reason that entry exists.
 impl Default for DeepConfig {
     fn default() -> Self {
         Self {
