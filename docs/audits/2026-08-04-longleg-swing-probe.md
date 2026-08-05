@@ -246,6 +246,31 @@ Three tests, **0.14 s total added to the gate**:
 - `the_placement_decision_is_a_function_of_phase` — the same phase must decide the same
   way at 500 and 1 000 samples, or every number above is suspect.
 
+### Gate state at hand-off
+
+- `cargo fmt --all --check` — **exit 0**.
+- `cargo clippy --workspace --all-targets --release -- -D warnings` — **exit 0**, with
+  `Checking dc-client … agent-a1278ece9156f340b\crates\dc-client` in the log (this
+  worktree's checkout, not a sibling's).
+- `cargo test -p dc-client --release --bin dc-client swing_probe` — **3 passed, 0 failed**,
+  0.14 s, after a `cargo clean -p dc-client --release` and with `Compiling dc-client
+  v0.1.0 (…agent-a1278ece9156f340b…)` verified in the log.
+- `cargo test --workspace --release` — **started, and still running at hand-off**: 33 of
+  ~94 suites reported, **0 failures**, stalled in `dc-worldgen`'s `deeptime_integration`.
+  ⚠ **The workspace count is therefore NOT verified against the 1029/0/94 baseline.** The
+  change is a `#[cfg(test)]` module in `dc-client` plus one `mod` line; nothing outside
+  that crate can see it, and clippy `--all-targets` compiled every crate. But that is an
+  argument, not a run, and it is recorded as such.
+
+⚠ **`scripts/standin_locus_check.py`**: 14 markers, **1 with no resolvable locus** —
+`crates/dc-worldgen/src/deeptime/recorder.rs:832` ("chapter and epoch DISAGREE after an
+overprint"). **Pre-existing and not this probe's**; nothing in `swing_probe.rs` carries a
+`STAND-IN` marker.
+
+⚠ **File size**: `swing_probe.rs` is **708 lines** against the 700-line SOURCE threshold.
+A split (the tracer vs the report printer) is **proposed, not taken** — the hook's rule is
+to propose rather than restructure mid-task.
+
 **One instrument bug, recorded because it produced a silent null on the first run:** the
 swing-track printer seeded its "has the value changed" comparison with `f64::NAN`, and
 `(x − NaN).abs() > eps` is **false**, so the row printed as *"0 distinct poses"* — an
