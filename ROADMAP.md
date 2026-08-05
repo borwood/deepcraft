@@ -477,6 +477,20 @@ physically different in reality and often in games."* The shape is **give the ga
 velocity vector instead of a scalar**, with the pack declaring how its species responds along that
 axis: the same move as the speed ladder, one dimension over.
 
+**✅ FIRST SLICE SHIPPED 2026-08-05 — journal/0159.** `TRUNK_TURN_WINDOW_S`, `AnimState::steer`,
+`AnimState.trunk_yaw` and `AnimState::facing` all deleted; the client renders `facing_yaw`
+unmodified. Gate: fmt 0, clippy 0, `dc-api` + `dc-client` **328/0**, exit 0, verified by test
+name (workspace gate owed at the arc's pause — batch debt). **The arc is NOT closed** — the
+continuation slot below is the substance, and it grew a user ruling the same day.
+- **What the slice found, and it changed the argument:** velocity is assigned **straight from
+  intent with no inertia**, and `facing_yaw` is a bare assignment from travel. **The movement
+  already snapped; only the render was smoothed** — so the constant was not modelling
+  rotational inertia, it was *concealing the absence of any*. The lag the user saw was the
+  render telling the truth about the sim.
+- **The seam was deliberately NOT left at `steer()`.** Keeping it as an identity passthrough
+  was the trained instinct and would have planted the seam where the full thing is not going
+  to live (the S18 failure). The marker went to `step_character` instead — `stubs.md` #55.
+
 **FIRST SLICE — delete `TRUNK_TURN_WINDOW_S` (DECIDED 2026-08-04, announce-then-go satisfied).**
 The client renders `facing_yaw` directly; turn behaviour becomes pack/controller-owned.
 - **What it will look like, announced and accepted:** bodies **snap-turn**. The user's ruling:
@@ -506,7 +520,37 @@ yaw — an animal cannot reverse its velocity instantly, and that is a fact abou
 metabolic cost; lateral is a different gait entirely, not a modified walk). **Do not solve turn and
 strafe as two features** — that is the mistake this entry exists to prevent.
 
-**Blocked on nothing. The user expects to open this soon, possibly next session.**
+**⚠ THE CONTINUATION SLOT NOW HAS A NAME AND A SHAPE — THE PACK-OWNED MOVEMENT LAYER
+(user, 2026-08-05, during the delete). Verbatim, because the both-ends structure is the ruling:**
+
+> *"whatever we do we are not foreclosing the ability for a pack to define bodies that simply snap
+> to the pointed direction, pivot immediately, etc: nor foreclosing the ability for a pack to have
+> bodies that preserve momentum, inertia, most slow and turn, etc. **This implies a layer of
+> pack-owned logic which may be opinionated or bare, etc, and which movement intent passes
+> through.**"*
+
+- **Intent in, movement out**, and what happens between is the pack's. Filed as `stubs.md` **#55**
+  at the site (`dc-api/src/character.rs::step_character`).
+- **Read what this does to today's behaviour:** bare passthrough is **not the degenerate case
+  awaiting replacement — it is one of the two ends that must stay expressible.** The delete did not
+  open a hole; it revealed that the engine's current motion is a legitimate point in a space the
+  pack chooses from. A layer that cannot express "no inertia at all" has failed the ruling exactly
+  as badly as one that cannot express a cart.
+- **Both extremes are requirements, not options**, and that is the acceptance criterion for the
+  slice that builds it.
+
+**⚠ AND THE PLAYER HAS AN HEIR (user, 2026-08-05, same exchange) — `stubs.md` #56.**
+> *"the player will control a body, there will be no separate player concept except that the body is
+> driven by user instead of script or mcp etc. **thus the current player has an heir**."*
+
+Three drivers — **user, script, MCP** — become three sources of the same intent through the same
+layer. `dc-api/src/character.rs`'s module doc currently cites `dc-client/src/player.rs` as *"the
+reference for these dynamics"*: **the reference is a stand-in.** This is adjacent to the arc rather
+than inside it, and it is **not scheduled** — recorded at the moment of the ruling per *defer =
+write it now*. Note it also reaches **corrections #100**: the observer's stop channel and the
+driver's are different mechanisms *because* the player and the character are different things.
+
+**Blocked on nothing. Slice one shipped 2026-08-05; the arc is open and the layer is next.**
 
 ### THE SECOND FIXTURE PACK — the missing control (**decision DEFERRED to next session, user, 2026-08-04**)
 

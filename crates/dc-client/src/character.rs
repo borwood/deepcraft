@@ -13,7 +13,10 @@
 //! its **posture**, and its **target trunk facing** — all legal one-way reads.
 //! Note the third is new (user call #5, 2026-08-02): the sim owns the facing
 //! target because B4 buckets colliders by yaw and B5 resolves damage against
-//! the nominal pose; the client owns only the turn rate toward it.
+//! the nominal pose. **The client owned the turn rate toward it until
+//! 2026-08-05, when that rate was deleted** — the engine's neutral turn is
+//! instant, so this system renders the sim's facing unmodified and any richer
+//! turn behaviour is the pack's (stubs.md #55).
 //!
 //! **Plans come from the REGISTRY, per character.** This used to call
 //! `biped_plan()` / `biped_clips()` as compiled-in Rust; the default pack now
@@ -269,9 +272,14 @@ pub fn sync_characters(
                 // no state, no crossfade (user call #1). Idle is the ladder's
                 // degenerate limit and needs no branch here or anywhere.
                 instance.anim.advance(dt, assets.gait.as_ref(), speed, rate);
-                // The trunk chases the SIM's target facing (user call #5): the
-                // sim owns the target, the client owns the approach.
-                instance.anim.steer(dt, f64::from(character.facing_yaw));
+                // The trunk IS the sim's facing (user call #5 as amended
+                // 2026-08-05): the sim owns the target, and the client's
+                // approach is the identity. `AnimState::steer` and the 0.22 s
+                // window it eased over are deleted — a world-global turn rate
+                // forecloses content, and any behaviour richer than instant is
+                // the pack's, through the movement layer at
+                // `dc_api::character::step_character` (stubs.md #55).
+                let facing = f64::from(character.facing_yaw);
                 let pose = pose_for(
                     &instance.anim,
                     assets.gait.as_ref(),
@@ -281,7 +289,7 @@ pub fn sync_characters(
                 );
                 // Trunk faces travel; head/neck follow the look (the walk-8 gap).
                 let orient = resolve_orientation(
-                    instance.anim.trunk_yaw,
+                    facing,
                     f64::from(character.yaw),
                     f64::from(character.pitch),
                     assets.cervical,
@@ -316,7 +324,7 @@ pub fn sync_characters(
                 // (within a half-voxel); beyond the cap the foot floats honestly.
                 let vscale = scale.scale;
                 let half_voxel = vscale.voxel_size_m() * 0.5;
-                let trunk = instance.anim.trunk_yaw;
+                let trunk = facing;
                 let mut leg_overrides: HashMap<String, [f64; 3]> = HashMap::new();
                 for leg in &assets.legs {
                     let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
@@ -663,9 +671,10 @@ fn spawn_body(
     BodyInstance {
         root,
         joints,
-        // Start at the sim's target facing so the trunk doesn't swing to it
-        // from an arbitrary zero on the first steps.
-        anim: AnimState::facing(f64::from(facing_yaw)),
+        // No facing to seed: the trunk reads the sim's `facing_yaw` every
+        // frame, so there is no swing-from-zero to pre-empt (the reason
+        // `AnimState::facing` existed, deleted 2026-08-05 with the turn window).
+        anim: AnimState::default(),
         plan: plan_name.to_string(),
     }
 }

@@ -2051,3 +2051,69 @@ function dies. **Deadline: S2's merge** — it must not survive into a shipped c
 **Blast radius:** nil today (nothing calls the kernel). After S2, a divergence between
 the two copies would put expression on different weights than the field believes,
 which is a silent appearance defect — hence the deadline rather than a soft owe.
+
+### 55. intent-becomes-velocity-with-nothing-in-between — *added 2026-08-05 (the turn delete, slice one of DIRECTION IS AN AXIS, NOT A RATE; user-originated heir)*
+
+**The stand-in:** `dc-api/src/character.rs::step_character` turns a move intent into a
+velocity **directly** — normalize the direction, scale by `walk_speed_m_s`, assign. No
+inertia, no momentum, no turn radius, no cost to changing direction. The comment has
+said *"no inertia, like the player"* since the character primitive was built.
+
+**Why it is a stand-in and not a defect:** the directness is the engine's **honest
+neutral** — it models nothing and claims to model nothing, which is the correct posture
+for a primitive that has not been in a content maker's hands (`dependency-graph.md`
+§ 0a). It becomes a defect only if something starts treating it as a movement *model*.
+It is not an ABSENCE in the § 0b sense either: two well-made packs genuinely disagree
+here, which is what makes the heir pack-owned rather than an unbuilt engine mechanism.
+
+**Heir: the PACK-OWNED MOVEMENT LAYER** (user, 2026-08-05, verbatim):
+
+> *"whatever we do we are not foreclosing the ability for a pack to define bodies that
+> simply snap to the pointed direction, pivot immediately, etc: nor foreclosing the
+> ability for a pack to have bodies that preserve momentum, inertia, most slow and turn,
+> etc. This implies a layer of pack-owned logic which may be opinionated or bare, etc,
+> and which movement intent passes through."*
+
+So: **intent in, movement out**, and what happens between is the pack's — bare
+passthrough at one end (today's behaviour, which must remain expressible), momentum and
+a turn radius at the other. Both extremes are requirements, not options.
+
+**Note the site is deliberate.** The deleted `TRUNK_TURN_WINDOW_S` lived on the *trunk
+yaw*; this heir lives on the *movement*, because an animal cannot reverse its velocity
+instantly and that is a fact about the body, not about where its chest points. Planting
+the seam at the old constant's site would have put it where the full thing is not going
+to live — the S18 failure the corpus already names.
+
+**Blast radius:** every moving body, including the player once [[#56]] resolves. Today
+nothing depends on the directness *as a model*, so the layer can be introduced additively
+with bare passthrough as its identity.
+
+### 56. the-player-is-not-a-player — *added 2026-08-05 (user ruling, during the turn delete)*
+
+**The stand-in:** `dc-client`'s player is a separate movement path from
+`dc_api::character::step_character` — its own code, its own dynamics, and the character
+primitive's own comments cite it as *the reference* (`character.rs`'s module doc:
+*"exactly like the client's player movement code (dc-client player.rs, the reference for
+these dynamics)"*). Two movers, one of which is treated as normative.
+
+**Why it is a stand-in:** the user's ruling, 2026-08-05 — ***"the player will control a
+body, there will be no separate player concept except that the body is driven by user
+instead of script or mcp etc. thus the current player has an heir."*** A separate player
+concept is bootstrap residue: it exists because bodies did not, not because anyone chose
+it. Under `EXISTENCE IS NOT STANDING`'s test — *if this did not exist, would we build it
+today, in this shape?* — the answer is no.
+
+**Heir: the player becomes a BODY whose controller is the user.** The three drivers —
+user, script, MCP — become three sources of the same intent, flowing through the same
+pack-owned movement layer ([[#55]]). Nothing about being user-driven should reach the
+body's physics.
+
+**Blast radius: larger than it looks, and it points at a live authority problem.** The
+player being its own thing is currently load-bearing in the walk loop — `dc-client`'s
+player is what the user drives with a keyboard, while characters are what the MCP surface
+drives. Corrections #100 is the same seam from the other side: the observer's stop channel
+and the driver's are different mechanisms *because* the player and the character are
+different things. Collapsing them collapses that gap too.
+
+**Not scheduled.** Recorded at the moment of the ruling per *defer = write it now*; the
+arc that consumes it has not been opened.

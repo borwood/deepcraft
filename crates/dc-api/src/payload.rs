@@ -520,10 +520,13 @@ pub enum QueryData {
         /// The **TARGET trunk facing** (radians) the sim derives from travel —
         /// the sim-owned half of the facing split (user call #5, 2026-08-02;
         /// `bodies.md` § *THE SIM OWNS THE TARGET; THE CLIENT OWNS THE
-        /// APPROACH*). The client's rendered trunk chases this over
-        /// `TRUNK_TURN_WINDOW_S`, so a readback showing the two apart is a turn
-        /// in progress, not a defect. Appended field; `serde(default)` decodes
-        /// pre-ruling streams to 0.0.
+        /// APPROACH*). **Since 2026-08-05 the client renders this value
+        /// unmodified** — the 0.22 s window it used to chase over is deleted,
+        /// so the rendered trunk and this field are never apart. *(The previous
+        /// text said a readback showing the two apart is a turn in progress;
+        /// there is no longer any such state, and a discrepancy would now be a
+        /// defect.)* Appended field; `serde(default)` decodes pre-ruling
+        /// streams to 0.0.
         #[serde(default)]
         facing_yaw: f32,
     },

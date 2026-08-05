@@ -344,7 +344,7 @@ pub fn trace_stride(
 
     // Production's own state, driven by hand: `phase` is swept, `froude` is
     // held (a level walk at constant speed latches one value).
-    let mut state = AnimState::facing(0.0);
+    let mut state = AnimState::default();
     state.froude = froude;
     state.stepped_froude = froude;
     // `CycleGrid::poses` is cfg(test)-gated on the grid itself; derive the same

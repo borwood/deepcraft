@@ -96,10 +96,16 @@ use crate::anim_rate::{AnimRate, CycleGrid, PhaseGrid, StepBlend};
 // (`dc_api::bodies::default_pack`'s `with_cervical_range`), read here through
 // [`Cervical::of`]. The migration is byte-identical: the same two numbers,
 // a different home, and now a body *can* say its own.
-/// Trunk turn window (seconds): how quickly the trunk yaw chases the travel
-/// direction. Short, and the pose is sampled on the client's stop-motion grid,
-/// so turns still read stepped in time even though the yaw itself is now exact.
-pub const TRUNK_TURN_WINDOW_S: f64 = 0.22;
+// `TRUNK_TURN_WINDOW_S` (0.22 s) stood here and was DELETED 2026-08-05 (user).
+// It was a world-global turn rate — A-1's sixth instance in this arc, after the
+// four absolute-metre constants, the world-global walk speed, gravity and
+// `ANIM_FPS` — and it FORECLOSED CONTENT: a golem should pivot instantly and a
+// fixed 0.22 s made that unauthorable. It was also in the wrong layer, since
+// `bodies.md`'s three-layer split puts volition in the controller and this was
+// implemented in the renderer. The engine's neutral is now **instant**; turn
+// behaviour is the pack's, through the movement layer named at
+// `dc_api::character::step_character` (stubs.md #55). See ROADMAP § Sequenced
+// "DIRECTION IS AN AXIS, NOT A RATE".
 /// How far the root sinks (meters) when the body is crouching — the cosmetic
 /// half of the parametric-crouch firewall split (the sim shrinks the collider;
 /// this lowers the spine and the feet-IK bends the knees to keep contact).
@@ -307,12 +313,12 @@ pub struct AnimState {
     /// The frame index the latch last fired on. `NaN` until the first advance,
     /// so the first frame always latches (`NaN != x` for every `x`).
     latched_frame: f64,
-    /// The **rendered** trunk yaw (radians, bevy convention) — the *approach*
-    /// half of the facing split (user call #5, 2026-08-02; `bodies.md` § THE SIM
-    /// OWNS THE TARGET). It chases `CharacterState.facing_yaw` over
-    /// [`TRUNK_TURN_WINDOW_S`]. The target is the sim's and is replay-safe; this
-    /// smoothing is cosmetic and free to tune.
-    pub trunk_yaw: f64,
+    // The `trunk_yaw` field stood here — the *approach* half of the facing
+    // split (user call #5, 2026-08-02) — and was DELETED 2026-08-05 with
+    // `TRUNK_TURN_WINDOW_S` and `steer`. **The split's principle survives the
+    // delete**: the sim still owns the target, and the client's approach is now
+    // the identity, which is what "instant" means. The renderer reads
+    // `CharacterState.facing_yaw` directly.
 }
 
 impl Default for AnimState {
@@ -323,24 +329,15 @@ impl Default for AnimState {
             froude: 0.0,
             stepped_froude: 0.0,
             latched_frame: f64::NAN,
-            trunk_yaw: 0.0,
         }
     }
 }
 
 impl AnimState {
-    /// A fresh state already facing `trunk_yaw` — used at spawn so the trunk
-    /// does not swing to the sim's target from an arbitrary zero on the first
-    /// steps. A constructor rather than a struct literal because the latch
-    /// index is private: there is exactly one way to build this, and it starts
-    /// un-latched.
-    #[must_use]
-    pub fn facing(trunk_yaw: f64) -> Self {
-        Self {
-            trunk_yaw,
-            ..Self::default()
-        }
-    }
+    // `facing(trunk_yaw)` stood here and went with the field: it existed so the
+    // trunk would not swing to the sim's target from an arbitrary zero on the
+    // first steps, and with an instant turn there is no swing to seed.
+    // `AnimState::default()` is now the only constructor.
 
     /// Advance one render frame: tick the clock, grade the gait continuously
     /// over Froude, advance the phase by the **derived cadence**, and hold the
@@ -405,25 +402,14 @@ impl AnimState {
             .map_or(self.phase, |c| c.phases().quantize(self.phase))
     }
 
-    /// Steer the trunk toward the **sim's target facing** over
-    /// [`TRUNK_TURN_WINDOW_S`] — the approach half of the split. The target is
-    /// held by the sim when the body is stationary, so this needs no speed test
-    /// of its own: a stopped body simply chases a target that is not moving.
-    /// *That is the threshold this used to carry, and its removal is the whole
-    /// point of the split.*
-    pub fn steer(&mut self, dt: f64, target_yaw: f64) {
-        let dt = dt.max(0.0);
-        if !target_yaw.is_finite() {
-            return;
-        }
-        let delta = wrap_pi(target_yaw - self.trunk_yaw);
-        let f = if TRUNK_TURN_WINDOW_S > 0.0 {
-            (dt / TRUNK_TURN_WINDOW_S).min(1.0)
-        } else {
-            1.0
-        };
-        self.trunk_yaw = wrap_pi(self.trunk_yaw + delta * f);
-    }
+    // `steer(dt, target_yaw)` stood here — the approach half of the split — and
+    // was DELETED 2026-08-05 with the window it read. It is deliberately NOT
+    // kept as an identity seam: the pack-declared turn constraint that replaces
+    // it belongs on the **movement**, not on the trunk yaw ("an animal cannot
+    // reverse its velocity instantly, and that is a fact about the body"), so a
+    // seam here would sit where the full thing is not going to live. Its heir
+    // is the pack-owned movement layer at
+    // `dc_api::character::step_character` — stubs.md #55.
 }
 
 /// The resolved facing of a body: how far its trunk turns and how far its
@@ -2647,7 +2633,7 @@ mod tests {
     /// directions:
     ///
     /// 1. **Upstream** — the state a sim-visible consumer would read (`phase`,
-    ///    `froude`, `clock_s`, `trunk_yaw`) is **bit-identical at any target**.
+    ///    `froude`, `clock_s`) is **bit-identical at any target**.
     ///    The rate reaches the *hold* and nothing else, so no future consumer of
     ///    the unquantized target can inherit a client's setting by accident.
     /// 2. **Downstream** — `dc_api::CharacterState` is a body's entire
@@ -2674,13 +2660,7 @@ mod tests {
             let mut targets = Vec::new();
             for (dt, spd) in history {
                 s.advance(dt, Some(&gait), spd, rate);
-                s.steer(dt, 0.7);
-                targets.push((
-                    s.clock_s.to_bits(),
-                    s.phase.to_bits(),
-                    s.froude.to_bits(),
-                    s.trunk_yaw.to_bits(),
-                ));
+                targets.push((s.clock_s.to_bits(), s.phase.to_bits(), s.froude.to_bits()));
             }
             targets
         };
@@ -3027,65 +3007,47 @@ mod tests {
     /// sim, which simply stops moving the target when the body stops. That
     /// removal is the point — one derivation of the facing, not one per side.
     #[test]
-    fn the_trunk_chases_the_sims_target_and_holds_when_it_stops_moving() {
-        // A fixed target history replays identically.
+    /// **The client adds NOTHING to the sim's facing.** This replaces
+    /// `the_trunk_chases_the_sims_target_and_holds_when_it_stops_moving`, whose
+    /// subject (`AnimState::steer` easing toward the target over
+    /// `TRUNK_TURN_WINDOW_S`) was deleted 2026-08-05 — the engine's neutral turn
+    /// is instant, and the pack owns any behaviour richer than that.
+    ///
+    /// The predecessor asserted *convergence* toward the target; this asserts
+    /// **exact equality**, which is the stronger claim and the one that now
+    /// holds. It is pinned at `resolve_orientation` because that is the seam the
+    /// renderer feeds `CharacterState.facing_yaw` into — so if a turn rate ever
+    /// creeps back into the client, this is where it shows up as a residual.
+    fn the_client_applies_the_sims_facing_unmodified() {
         // The SIM's convention, read from the sim — not restated here.
         let facing_x = dc_api::character::yaw_from_travel(1.0, 0.0).unwrap();
         let facing_z = dc_api::character::yaw_from_travel(0.0, -1.0).unwrap();
-        let hist = [
-            (0.016, facing_x),
-            (0.02, facing_x),
-            (0.02, facing_z),
-            (0.05, facing_z),
-            (0.016, -facing_x),
-        ];
-        let run = || {
-            let mut s = AnimState::default();
-            let mut ys = Vec::new();
-            for (dt, target) in hist {
-                s.steer(dt, target);
-                ys.push(s.trunk_yaw);
-            }
-            ys
+        let cervical = Cervical {
+            yaw_max: Some(1.2),
+            pitch_min: Some(-1.0),
+            pitch_max: Some(1.0),
         };
-        assert_eq!(run(), run(), "fixed steer history replays identically");
-
-        // Chasing the +X target settles the trunk facing +X (yaw −π/2).
-        let mut s = AnimState::default();
-        for _ in 0..60 {
-            s.steer(0.05, facing_x);
+        // A gaze aligned with travel: the trunk IS the sim's facing, exactly,
+        // and the neck takes nothing.
+        for facing in [facing_x, facing_z, -facing_x, 0.0] {
+            let o = resolve_orientation(facing, facing, 0.0, cervical);
+            assert_eq!(
+                o.trunk_yaw, facing,
+                "the trunk must be the sim's facing bit-for-bit, not an \
+                 approach toward it"
+            );
+            assert!(
+                o.neck_yaw.abs() < 1e-12,
+                "an aligned gaze leaves the neck straight, got {}",
+                o.neck_yaw
+            );
         }
-        assert!(
-            wrap_pi(s.trunk_yaw - (-std::f64::consts::FRAC_PI_2)).abs() < 1e-3,
-            "trunk reaches the sim's target, got {}",
-            s.trunk_yaw
-        );
-        // The sim holds its target when the body stops; the trunk converges on
-        // it and stays. Asserted as CONVERGENCE, not equality: the approach is
-        // exponential, so more frames against an unchanged target can only
-        // close the residual further — never open it, and never drift off.
-        // *(This assertion said "unchanged" and the gate caught it: an
-        // asymptotic chase never lands exactly, and demanding that it does is
-        // asserting a snapshot of the easing curve rather than the property.)*
-        let residual_before = wrap_pi(s.trunk_yaw - facing_x).abs();
-        for _ in 0..5 {
-            s.steer(0.1, facing_x);
-        }
-        let residual_after = wrap_pi(s.trunk_yaw - facing_x).abs();
-        assert!(
-            residual_after <= residual_before && residual_after < 1e-3,
-            "an unchanged target must close the facing, not move it: \
-             {residual_before} -> {residual_after} rad"
-        );
-        // It approaches over TRUNK_TURN_WINDOW_S rather than snapping — the
-        // half that is genuinely the client's and genuinely free to tune.
-        let mut s = AnimState::default();
-        s.steer(TRUNK_TURN_WINDOW_S / 4.0, facing_x);
-        assert!(
-            s.trunk_yaw.abs() > 1e-9 && wrap_pi(s.trunk_yaw - facing_x).abs() > 1e-3,
-            "a partial frame must move partway, got {}",
-            s.trunk_yaw
-        );
+        // And it is stateless: no history, no frame rate, no dt. The same
+        // facing twice in a row is the same answer — there is nothing left to
+        // ease, which is the whole content of the delete.
+        let a = resolve_orientation(facing_z, facing_x, 0.0, cervical);
+        let b = resolve_orientation(facing_z, facing_x, 0.0, cervical);
+        assert_eq!(a, b, "the facing resolve carries no state");
     }
 
     // --- the body experiments: does one clip set retarget, and does the foot

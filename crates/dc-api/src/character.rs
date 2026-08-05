@@ -181,9 +181,18 @@ pub struct CharacterState {
     /// heading the body's chest is turning toward. DECIDED 2026-08-02 (user
     /// call #5, widened into `bodies.md` § *THE SIM OWNS THE TARGET; THE CLIENT
     /// OWNS THE APPROACH*): the **sim owns the target**, derived deterministically
-    /// from travel and replay-safe; the **client owns the approach**, the turn
-    /// rate toward it (`TRUNK_TURN_WINDOW_S`). Neither half is "the" facing, and
-    /// the word for the whole thing is the trap.
+    /// from travel and replay-safe; the **client owns the approach**. Neither
+    /// half is "the" facing, and the word for the whole thing is the trap.
+    ///
+    /// **AMENDED 2026-08-05 (user): the client's approach is now the IDENTITY.**
+    /// The turn rate that used to live there — `dc_client::body::
+    /// TRUNK_TURN_WINDOW_S`, a world-global 0.22 s — is deleted. A world-global
+    /// turn rate forecloses content (a golem should pivot instantly), so the
+    /// engine's neutral is **instant** and the renderer applies this value
+    /// unmodified. The split's principle is untouched; only its client half
+    /// became free. Turn behaviour richer than instant — momentum, inertia,
+    /// a turn radius, a body that must slow to come about — is the **pack's**,
+    /// through the movement layer named at [`step_character`] (stubs.md #55).
     ///
     /// It is the arc's **second instance** of that pattern (after the gaze), and
     /// it moves here now rather than later because B4 buckets colliders by yaw
@@ -297,6 +306,29 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
     let dt = cfg.tick_dt_s;
     let to_voxels = 1.0 / cfg.voxel_size_m;
 
+    // ⚠ STAND-IN — heir: the PACK-OWNED MOVEMENT LAYER (stubs.md #55, user
+    // 2026-08-05). Intent becomes velocity here, directly and with no inertia,
+    // and that directness is the engine's honest neutral rather than a model of
+    // anything. The user's ruling: *"whatever we do we are not foreclosing the
+    // ability for a pack to define bodies that simply snap to the pointed
+    // direction, pivot immediately, etc: nor foreclosing the ability for a pack
+    // to have bodies that preserve momentum, inertia, most slow and turn, etc.
+    // This implies a layer of pack-owned logic which may be opinionated or
+    // bare, etc, and which movement intent passes through."*
+    //
+    // So this line is where that layer goes: intent in, movement out, and what
+    // happens between is the pack's opinion — bare passthrough at one end,
+    // momentum and a turn radius at the other. It is the arc's continuation
+    // slot (ROADMAP § Sequenced "DIRECTION IS AN AXIS, NOT A RATE"), and it is
+    // deliberately the site the deleted `TRUNK_TURN_WINDOW_S` did NOT occupy:
+    // an animal cannot reverse its velocity instantly, and that is a fact about
+    // the body's movement, not about its trunk yaw.
+    //
+    // Note also what "like the player" below is standing on: the player is
+    // itself a stand-in (stubs.md #56) — there is to be no separate player
+    // concept, only a body driven by a user instead of by a script or the MCP
+    // surface, so the player's motion converges into this same layer.
+    //
     // Horizontal velocity straight from intent (no inertia, like the player).
     let (dx, dz) = c.input.move_dir;
     let len = (dx * dx + dz * dz).sqrt();
@@ -329,9 +361,16 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
 
     // The TARGET trunk facing (user call #5, 2026-08-02): derived from travel
     // whenever there is horizontal motion, held otherwise. **The sim owns the
-    // target; the client owns the approach** — the turn rate toward this is
-    // `AnimState::steer`'s and stays cosmetic and free to tune. Deriving it
-    // here, from the same normalized intent the velocity comes from, is what
+    // target; the client owns the approach** — and as of 2026-08-05 that
+    // approach is the identity, so this value is what renders.
+    //
+    // *(This comment said the turn rate "stays cosmetic and free to tune" — the
+    // A-2 the arc's ROADMAP entry names. It was true while the trunk was
+    // decoration and stopped being true the moment turning became a movement
+    // constraint; the rate is deleted and its heir is the pack-owned movement
+    // layer above, where it is not cosmetic at all.)*
+    //
+    // Deriving it here, from the same normalized intent the velocity comes from, is what
     // makes it replay-safe for B4's yaw-bucketed colliders and B5's damage
     // resolution: one derivation, not one per consumer.
     //
