@@ -69,10 +69,13 @@ one entry per distinct pose, `*` = seated/clip pose (longleg, continuous, 1.35 m
 ```
 
 It is a **W**: bend to −19.2°, **back to −0.5° at mid-swing**, bend to −19.2° again,
-straighten at touchdown. The gait's own knee over the same swing is a *single* triangle
-peaking at **−18.1°** at mid-swing. **The foot IK inverts the knee profile — it is
-straightest exactly where the gait wants it most bent.** "A mini bend and correction back
-to straight and back to bent" is a literal description of this row.
+straighten at touchdown. The gait's own knee over the same swing is a *single* triangle,
+**most bent at mid-swing** — `traversal` returns `blend = 1 − |2s − 1|`
+(`gait/evaluate.rs:191-197`) and `limb_pose` lerps the straight neutral toward the flexed
+`clearance` pose by exactly that (`:250-264`). **The foot IK therefore inverts the knee
+profile: the rendered leg is straightest precisely where the gait wants it most bent.**
+"A mini bend and correction back to straight and back to bent" is a literal description of
+this row.
 
 ## 2. Which recorded quantity changes state at that phase
 
