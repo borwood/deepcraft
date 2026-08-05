@@ -78,13 +78,67 @@ different clip set — a silent wrong-pose bug, the worst kind. Two things close
 
 That is the reason `ClipOwnership` stores a name it otherwise has no use for.
 
-## What was measured
+## What was measured — and the measurement that had to be thrown away
 
-<!-- FILL: numbers -->
+The obvious experiment is: build the pre-hoist sources, build the post-hoist sources,
+run the same bench in both. We did that. **It is not trustworthy, and the reason is
+worth more than the number was.**
+
+Interleaved, alternating order, 30 runs a side, the shipped path went from a minimum of
+**4320 ns** to **3606 ns** (−16.5 %), median 5434 → 4798 (−11.7 %). But the bench also
+prints a **control** — `sample_clip` on the parked walk fixture, a function neither slice
+touched — and *the control moved too*: 1725 → 1500 ns minimum, −13 %. Identical source,
+different number. Either the compiler laid it out differently in the two binaries, or it
+inherits allocator state from the loop that runs before it (which is exactly what the
+hoist changed). Both are plausible; neither is attributable. **A before/after across two
+binaries measures the binaries, not the change.**
+
+So the number that means something is measured **inside one binary**, in the same test:
+the identical loop, run twice, the only difference being whether the ownership table is
+rebuilt inside it. That is precisely the defect, with layout, allocator and CPU state
+held constant.
+
+| | ns per body per frame |
+|---|---|
+| hoisted (shipped) | **5013** |
+| the same loop, table rebuilt per call | **6825** |
+| **removed by the hoist** | **1812 (−26.6 %)** |
+| the pre-pass on its own | 1069 |
+
+*One honesty note on that table:* the rebuilt-per-call figure uses the **new** table type,
+which owns its names (`Box<str>`, one allocation each) where the old inline code borrowed
+them (`Vec<&str>`, four allocations total). So 1812 ns is an **upper bound** on what the
+old pre-pass cost, not an exact restatement of it. The cross-binary minimum (−714 ns) is a
+lower bound with a different flaw. The true figure is between them, and both say the same
+thing about direction and order of magnitude.
+
+**Against the 3312 ns pre-slice baseline the brief asked about: I cannot settle it, and I
+will not pretend otherwise.** The machine tonight was running two other sessions' cargo
+gates for the entire measurement window; the same bench spread 4320–6726 ns on the
+*pre-hoist* binary depending on when it ran. 3606 and 3312 are 8 % apart, and the noise
+floor is three times that. What can be said without hedging: **the hoist removes more than
+the quantization slice added** (−26.6 % measured in-binary against a +22 % regression), and
+**it removes it from the frame loop entirely rather than making it cheaper**.
 
 ## The acceptance criterion was byte-identity, not green tests
 
-<!-- FILL: byte identity -->
+The tests were green before this slice and they would have been green after almost any
+version of it, including a wrong one. A re-housing has exactly one acceptance criterion
+worth the name: **the poses must be bit-identical**. So the evidence is a dump, not an
+assertion — every composed pose's three Euler components as raw `f64::to_bits`, over a
+sweep of three plans × four target rates × five speeds × four layer sets × both the
+derived-gait body and the identity fallback, twenty-four frames each. Pre-hoist sources
+checked out into the same worktree, same harness, same command; the two logs diffed.
+
+**61 919 pose lines, identical SHA-256, zero differing lines.** Not "the tests pass" — the
+same bits.
+
+The harness is deliberately not left in the tree. A committed digest of today's poses is
+the snapshot § Gates forbids by name: it would fail the day a colleague legitimately
+improves the gait, which is worse than the defect it guards. What *is* left is the
+property test — the gait owns every segment on every limb it derives, a clip owns
+everything it names except a bearing chain, and the table is a pure function of its two
+inputs. That stays true of a plan nobody has written yet.
 
 ## What is deliberately not here
 

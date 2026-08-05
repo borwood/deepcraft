@@ -2076,12 +2076,22 @@ mod tests {
     /// intermediate shapes were measured and rejected on this number: a
     /// `Vec` of owners per bone (**6445 ns**) and a `HashMap<&str, StepBlend>`
     /// (**4945 ns**); the shipped path holds ownership as short name lists and
-    /// hashes nothing. **The named heir for the rest is hoisting the ownership
-    /// tables into `character.rs`'s per-plan `BodyAssets`** — ownership is
-    /// constant per (plan, clip set) and only `gait_step` moves with speed, so
-    /// the whole pre-pass is per-plan work being redone per body per frame.
-    /// Not done here: it changes `pose_for`'s signature, and this slice is an
-    /// appearance change the user has yet to rule on.
+    /// hashes nothing.
+    ///
+    /// **✅ THE HEIR IT NAMED — the ownership hoist — LANDED THE SAME DAY**
+    /// ([`PoseOwnership`]; the tables are now built once per (plan, clip set) in
+    /// `character.rs::build_plan_assets`). *The caption above is a dated record
+    /// and stays; this is its banner.* What the hoist removed is measured by the
+    /// second loop below, **in this binary**, because a cross-binary before/after
+    /// was confounded: `sample_clip`, untouched by either change, differed ~14 %
+    /// between the two builds. Same loop, one difference — the table rebuilt per
+    /// call, which is what this function did until the hoist.
+    ///
+    /// **Poses are bit-identical across the hoist**, verified by dumping
+    /// `f64::to_bits` of every composed pose over 3 plans × 4 targets × 5 speeds
+    /// × 4 layer sets × gait/no-gait and diffing: 61 919 lines, same SHA-256.
+    /// That is the acceptance criterion for a re-housing; the timing is the
+    /// reason for it.
     #[test]
     fn per_frame_pose_cost_is_measured() {
         use std::time::Instant;
@@ -2402,74 +2412,6 @@ mod tests {
         let no_gait = PoseOwnership::of(None, &[&clip]);
         assert!(!no_gait.gait_owns("arm_l_upper"));
         assert!(no_gait.clips[0].owns("leg_l_upper"));
-    }
-
-    /// **TEMPORARY HARNESS — the byte-identity evidence for the ownership
-    /// hoist.** Prints every composed pose as raw `f64::to_bits`, over a sweep
-    /// of plans × targets × speeds × layer sets, so a re-housing can be shown to
-    /// be a re-housing rather than asserted to be one. Run with `--nocapture`
-    /// before and after and diff the `POSEBITS|` lines.
-    ///
-    /// Deliberately NOT left in the tree: a committed digest of today's poses is
-    /// exactly the snapshot § Gates forbids — it would fail the day a colleague
-    /// legitimately improves the gait, which is worse than the defect it guards.
-    #[test]
-    fn posebits_sweep() {
-        let clips = biped_clips();
-        let idle = clips
-            .iter()
-            .find(|c| c.name == "dc:anim/biped_idle")
-            .expect("idle")
-            .clone();
-        let jump = clips
-            .iter()
-            .find(|c| c.name == "dc:anim/biped_jump")
-            .expect("jump")
-            .clone();
-        // A clip that also asks for a BEARING chain — rule 3's refusal, and the
-        // path where a clip's ownership is narrowed by the gait's.
-        let mut greedy = idle.clone();
-        greedy.keyframes[0].rotations.push(dc_api::bodies::JointRot {
-            segment: "leg_l_upper".into(),
-            euler: [0.3, 0.0, 0.0],
-        });
-        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
-            let gait = gait_of(&plan);
-            for (layers, layer_name) in [
-                (vec![], "none"),
-                (vec![&idle], "idle"),
-                (vec![&idle, &jump], "idle+jump"),
-                (vec![&greedy], "greedy"),
-            ] {
-                for fps in [6.0, 12.0, 30.0, 144.0] {
-                    let rate = AnimRate::new(fps).expect("a legal target");
-                    for speed in [0.0, 0.4, 1.47, 2.6, 4.5] {
-                        // Both the derived-gait body and the identity fallback.
-                        for with_gait in [true, false] {
-                            let g = with_gait.then_some(&gait);
-                            let owners = PoseOwnership::of(g, &layers);
-                            let mut state = AnimState::default();
-                            for step in 0..24 {
-                                state.advance(1.0 / 60.0, g, speed, rate);
-                                let pose = pose_for(&state, g, &layers, rate, &owners);
-                                let mut names: Vec<&String> = pose.joints.keys().collect();
-                                names.sort();
-                                for n in names {
-                                    let e = pose.joints[n];
-                                    println!(
-                                        "POSEBITS|{}|{layer_name}|{fps}|{speed}|{with_gait}|{step}|{n}|{:016x}|{:016x}|{:016x}",
-                                        plan.name,
-                                        e[0].to_bits(),
-                                        e[1].to_bits(),
-                                        e[2].to_bits()
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // --- per-cycle quantization (2026-08-04) -------------------------------
