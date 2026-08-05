@@ -19,6 +19,19 @@ read live, never when it gets old.**
 
 ## In flight
 
+- **TWO BUILDS DISPATCHED 2026-08-04 (geo session), independent file territories,
+  sharing the build slot:**
+  - **S1 — the correlation kernel** (pure functions, consumerless; epoch-interval
+    partition + lazy per-column evaluation per S0's I-5; § 2.3 invariants as tests;
+    B-1's zero-partner feather asserted; the M-C continuum predicate built-if-it-fits,
+    else owed to S2). New module under `deeptime/`; no golden moves; cheap-evidence tier.
+  - **E4-2 — the implicit field kernel + convergence study** (K2: BE-factorized ADI +
+    fixed-k Picard + today's limiter as the final projection; non-default, nothing ships
+    through it, no golden moves). Study: world agreement at M ∈ {45, 150} on the P2
+    instruments against the **rung-noise-derived bar**, plus the two structural fixtures
+    (rotated-ridge anisotropy; the added strongly-limited cascade). `dc-core::field` +
+    `creep_operator_probe`.
+
 - **THE NORTH STAR — the engine shape everything converges to (RATIFIED
   2026-07-23; `docs/design/north-star.md`; now CLAUDE.md read-first item 0).**
   A **native** engine whose core is only cell storage + a pass-runner +
@@ -3048,6 +3061,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   fluvial priors). *Historical body: journal/0136:280 said 10,951,030; the correlation
   design said ~7.4 M; a 48 % gap with neither pointing at the other — doc-topology
   shape 4, caught by a third audit reading both.*
+
+- **🔴 THE BUILD-MUTEX HOOK SILENTLY DISCARDS NON-CARGO WORK BUNDLED WITH A DENIED CALL —
+  DATA LOSS, not just a stall** (E4-2 agent, 2026-08-04, caught by proofreading): when a
+  Bash/PowerShell invocation contains a cargo command **and** other commands (an edit, a
+  file write, a python heredoc), a denial discards **the whole invocation** — the non-cargo
+  side never runs, and nothing says so. The E4-2 agent lost two python edits this way and
+  found them only by re-reading its own files; **one would not have compiled.** Interim
+  rule for every agent and session: **never bundle an edit with a cargo call** — separate
+  invocations, always. Fix shape (hook-owned, unowned): deny with a message naming what was
+  discarded, or scope the denial to the cargo command alone. Sibling of the text-match
+  false positive below; same file, same afternoon, both found by use.
 
 - **THE BUILD-MUTEX HOOK DENIES NON-CARGO COMMANDS THAT MERELY MENTION CARGO IN TEXT**
   (geo session, 2026-08-03, hit live): a `git commit` whose **commit message** contained
