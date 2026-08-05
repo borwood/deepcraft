@@ -379,7 +379,13 @@ pub fn trace_stride(
 
             // --- the gait's own pose, before any IK -----------------------
             let (cu, cl, sampled_phase) = if quantized {
-                let pose = pose_for(&state, Some(&gait), clips, rate);
+                // The ownership table is per (plan, clip set) and is built beside
+                // its inputs in `character.rs::build_plan_assets`; this probe is not
+                // a plan consumer, so it builds the one that describes ITS clips.
+                // Hoisting it out of the sample loop would be wrong here for the
+                // opposite reason to production's: the loop is the measurement.
+                let owners = crate::body::PoseOwnership::of(Some(&gait), clips);
+                let pose = pose_for(&state, Some(&gait), clips, rate, &owners);
                 (
                     pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]),
                     pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]),
