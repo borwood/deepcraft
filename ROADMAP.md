@@ -4861,8 +4861,11 @@ the **parallel bodies session was running at that moment**. Probe examples carry
 `test = true` (the probe doctrine), so `--lib --tests` cannot skip them either; a running
 exe cannot be relinked. **This is machine contention in the shared `CARGO_TARGET_DIR`, not
 a code red** — no test failed; nothing linked. **S1's batch debt is therefore NOT cleared
-and carries to S2's arc-chunk gate** (its own boundary anyway). A lib-only run was started
-at close; its result is in the wrap's final commit message if it landed.
+and carries to S2's arc-chunk gate** (its own boundary anyway). **A lib-only run DID complete: `--workspace --lib --release`
+= 296 passed / 0 failed across 6 crate suites** (it cannot touch example targets), so the
+library code — including S1's new `correlate` module — is verified; what is unverified is
+the **integration + probe-gate layer** (S1's 10 correlation invariants live in
+`tests/correlation.rs` and did not run here).
 **First act next session: the full trio on a quiet machine, before anything else merges.**
 
 ### First things — ordered, and two are user calls
