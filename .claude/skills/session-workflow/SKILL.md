@@ -1334,3 +1334,56 @@ answers**. *Worked end to end the day it was invented (the bodies session's rost
 findings → five dispositions → ratified → folded → banner back). It is corrections #65's
 rule — a user design may not be superseded by an implementation slice — generalized to
 sessions: the finder reports, the owner rules.*
+
+## Three clauses folded at the 2026-08-05 geo wrap (user-greenlit fingerprints)
+
+*From a characterization session that wrote no code and made **five** assistant errors sharing
+one mechanism. All three target that mechanism from different sides.*
+
+**1. AN ABSENCE-CLAIM MUST NAME ITS SEARCH.** `corrections.md` #101 filed the rule — *an absence
+is a claim about the SEARCH, not about the world* — and the same session then committed it
+**twice more, after filing it**. So the correction alone does not work; the fix has to be in the
+sentence.
+
+> **Never write *"X isn't recorded anywhere"*. Write *"I grepped `<pattern>` over `<scope>` and
+> found nothing."***
+
+The second is **falsifiable and shows its own gap**; the first **instructs the next reader not to
+look**, which is why this class costs more than an ordinary wrong claim. *Worked instances, all
+one day: "the reason was never written down" (it was `ROADMAP.md:2376`, eleven days live) ·
+"nothing durable says made-here vs brought-here" (three mover bits, and the stub was discharged) ·
+"no reasoning about the discard" (a design pass had costed it as Option B and the user had ruled).*
+
+**2. BLIND-VERIFY ANYTHING ENTERING A READ-FIRST ARTIFACT.** The existing rule — *name the files
+an adversarial checker may not read* — earned its keep twice in one day: a § 0 sweep found the
+new skill *"right about the code, wrong about the corpus in five places"*, and a trace agent
+**forbidden from reading the conclusion it was checking** refuted that conclusion's headline.
+
+> **A finding that will enter a SKILL, a ROADMAP entry, or `CLAUDE.md` gets one blind check
+> first** — the checker is given the question neutrally, told there is no expected answer, and
+> told explicitly that *"the thing works correctly"* is worth as much as a defect.
+
+Narrow on purpose: not every finding, only the ones that become doctrine every future session
+loads. **The cost of skipping it is a false claim in the artifact hardest to falsify later.**
+
+**3. THE CHARACTERIZATION-SESSION PATTERN — open the notes doc FIRST, not at the end.** For a
+session that **characterizes rather than builds** (mapping owed refactors, walking an inventory,
+opening threads before anything entrenches):
+
+- **Open a live working doc at the start**, and write each item into it **as it is walked** — not
+  at wrap. The user's direction that produced this: *"I just want to be sure everything is made
+  durable while it's being focused on and not after a long conversation about other things."*
+- **Mark provenance per claim** — user ruling · integrator analysis (unratified) · verified at
+  source · open/unknown. Cheap while writing, impossible to reconstruct later, and it is what
+  lets a cold session argue with the analysis instead of inheriting it.
+- **Carry an inventory table** so the unwalked items have a durable home. **The close block is
+  not that home** — it gets archived (corrections #73); the notes doc is, and the board entry
+  points at it.
+- **Record retractions in place rather than deleting them.** When a framing is corrected
+  mid-session, the wrong version and its cause are usually worth more than the fix.
+- **Wrap owes it a consistency pass and a placement decision**, both explicitly.
+
+*Why it is a named pattern and not just good habits: the session that produced it re-derived a
+user ruling that had been live on the board for eleven days, and the only reason the
+re-derivation was caught was that its findings had been written down where a sweep could read
+them.*
