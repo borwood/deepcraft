@@ -47,7 +47,15 @@
 //! [`Trace::max_step`] is the largest change between **adjacent samples**. For a
 //! C0-continuous signal that is `|f′| · Δphase`, so **doubling the sample count
 //! halves it**; a genuine jump is invariant under refinement. That ratio — not
-//! any absolute tolerance — is the scale-free invariant the gate asserts.
+//! any absolute tolerance — is the scale-free test.
+//!
+//! Measured 2026-08-04: the raw statistic does **not** refine. It holds at
+//! ≈ 5.0° (longleg), 7.3° (stout), 5.4° (biped), because `character.rs`'s
+//! `adjust.abs() > 1e-3` seat guard switches the leg between the gait pose and
+//! the IK pose **six times a cycle**, at `d_planar = 1.01896 m` against
+//! `reach = 1.02000 m` — 1.04 mm inside full extension, where `dφ/dd → ∞`. So
+//! the **gate** applies the ratio to [`Trace::max_step_within_decision`]: it
+//! excludes that known boundary and asserts *nothing else in the swing jumps*.
 
 use std::collections::HashMap;
 
