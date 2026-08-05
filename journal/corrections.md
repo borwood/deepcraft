@@ -4064,3 +4064,34 @@ characteristic failure, in the file that names it.
 (`docs/audits/2026-08-04-walk-stop-channel-design.md`) carries the full inventory with `file:line`
 for each piece. **Not fixed:** `target_tick`'s A-4 row in `spines.md` § 3 — handed up, not written,
 because the agent was scoped read-only there.
+
+## 99b. "Here is a three-way fork: diagnose / escalate to K3 / park E4-2" (the integrator's own framing, 2026-08-04 — presented to the user as a decision when two of its three branches were unchoosable; falsified by the user in one sentence)
+
+**The claim as put:** the E4-2 monotonicity failure was presented as a **user decision**
+with three options — diagnose first (recommended), escalate now to a K2-alt/K3
+re-price, or park the slice — each with costs, in the house one-decision-per-message
+shape.
+
+**What was false:** it was **not a fork.** The report itself said, twice, that the
+implementation had never been compiled or reviewed and that the defect might lie in the
+code rather than the scheme. Under that uncertainty, escalating re-prices a scheme
+against a fault whose owner is unknown, and parking retires a ruled pick on the same
+unknown. **Only the diagnosis branch was rational, and a fork whose alternatives cannot
+be chosen is not a fork** — it is the recommendation wearing a ballot. The user: *"i
+don't think this is a real fork if we can say 'we don't know what the problem is yet,
+what should we do??'"*
+
+**Mechanism, and it is a sibling of #96** — where that entry invented a *constraint* and
+presented it as a property of the problem, this one invented a *decision* and presented
+it as the user's. Both dress an assistant-side judgement in a form that asks the user to
+adjudicate. The tell is available before sending: **if the message's own body says the
+information needed to choose does not exist yet, there is no choice to offer.** The
+house one-topic-per-message format makes this failure *easier*, not harder — a well-formed
+options block reads as diligence even when its alternatives are hollow.
+
+**The rule:** a decision goes to the user when the answer turns on their judgement,
+values, or ownership — never when it turns on a measurement nobody has taken. In that
+case the honest message is *"here is what happened, here is the measurement I am
+dispatching, I will bring the real fork when it lands."* **Diagnosis dispatched
+immediately after the correction** (the monotonicity bisect + sub-cycling test that
+decides K2's viability arithmetically).
