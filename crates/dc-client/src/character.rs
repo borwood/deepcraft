@@ -39,8 +39,8 @@ use glam::DVec3;
 use crate::app::{AnimRateSetting, CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, Cervical, LegRig, Reach, derived_gait, derived_root_delta_m, fk_foot_local,
-    leg_rigs, pose_for, resolve_orientation, root_offset_m, solve_leg_ik,
+    AnimState, Cervical, LegRig, PoseOwnership, Reach, derived_gait, derived_root_delta_m,
+    fk_foot_local, leg_rigs, pose_for, resolve_orientation, root_offset_m, solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -124,6 +124,27 @@ struct BodyAssets {
     /// The segment wearing the face cue — the plan's unique `face` role.
     /// Was `s.name == "head"`.
     face_segment: Option<String>,
+    /// **Which anim owns which bone**, resolved once here from [`Self::gait`]
+    /// and [`Self::layers`] (2026-08-04). The pose loop used to rediscover this
+    /// per body per frame — walking every keyframe of every clip to answer a
+    /// question fixed when the plan and clips were defined — and it measured
+    /// +22 % on the hot path (journal/0155). This is the per-plan home the
+    /// marker on `body.rs`'s cost test named as its heir.
+    ownership: PoseOwnership,
+}
+
+impl BodyAssets {
+    /// **The additive layer set, in one place.** Both the ownership table and
+    /// the per-frame `pose_for` call read the clip slice from here, so there is
+    /// no way to build the table from one set of clips and pose with another
+    /// (S-3, one authority — and the property `pose_for`'s debug assertion
+    /// checks).
+    ///
+    /// There is exactly one layer today, the idle breath; a jump one-shot and
+    /// action layers are B3's. Widening this array is the whole change.
+    fn layers(&self) -> [&AnimClip; 1] {
+        [&self.idle]
+    }
 }
 
 /// Mirror the authority's characters into animated bodies: resolve each
@@ -251,7 +272,13 @@ pub fn sync_characters(
                 // The trunk chases the SIM's target facing (user call #5): the
                 // sim owns the target, the client owns the approach.
                 instance.anim.steer(dt, f64::from(character.facing_yaw));
-                let pose = pose_for(&instance.anim, assets.gait.as_ref(), &[&assets.idle], rate);
+                let pose = pose_for(
+                    &instance.anim,
+                    assets.gait.as_ref(),
+                    &assets.layers(),
+                    rate,
+                    &assets.ownership,
+                );
                 // Trunk faces travel; head/neck follow the look (the walk-8 gap).
                 let orient = resolve_orientation(
                     instance.anim.trunk_yaw,
@@ -531,7 +558,7 @@ fn build_plan_assets(
         unlit: fullbright,
         ..default()
     });
-    Some(BodyAssets {
+    let mut assets = BodyAssets {
         plan,
         idle,
         gait,
@@ -543,7 +570,15 @@ fn build_plan_assets(
         face: (face_mesh, face_material),
         look_joint,
         face_segment,
-    })
+        ownership: PoseOwnership::default(),
+    };
+    // **The ownership table, resolved here and not in the frame loop** (the
+    // heir named by `body.rs`'s per-frame cost marker). Built from THIS
+    // struct's own gait and layer set, in the constructor that owns them, so
+    // the table cannot describe a clip set other than the one the pose loop
+    // passes: same clones, same call, one authority.
+    assets.ownership = PoseOwnership::of(assets.gait.as_ref(), &assets.layers());
+    Some(assets)
 }
 
 /// Spawn one body's entity hierarchy from its plan and return the instance.

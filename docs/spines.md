@@ -494,6 +494,19 @@ A cheap answer written because a consumer cannot afford the real one must be
   disappearing-consumer test now answers *yes*: if the far field vanished, the
   surface rule would still exist unchanged, because it is the expression.
 - compliance: S15's coarse capacity held against an exact voxel walk
+- **compliance (2026-08-04, the ownership hoist, journal/pending-hoist-…) — a memoization
+  that CANNOT become a second authority, because it is a field of the struct holding its
+  own inputs.** `body::pose_for` rediscovered, per body per frame, which segments each anim
+  owns — a pure function of `(gait, clips)`, both of which `character.rs`'s `BodyAssets`
+  already held by value. `PoseOwnership` is built **in the same constructor, from the same
+  clones**, so there is no second copy to drift: the copy *is* the input. The usual S-3
+  price (a stub entry, an agreement test against the authority) is not owed here because
+  the derivation is not *summarised* — it is *relocated*, and byte-identity of every
+  composed pose is the receipt (61 919 lines, same SHA-256). **The one seam that could
+  betray it — a caller passing a clip set the table was not built from — is closed by
+  `BodyAssets::layers()` being the single place the layer set is named, plus a
+  `debug_assert` on the clip names in `pose_for`.** Ride this shape whenever the fix for a
+  hot-loop cost is *where the question is asked*, not *how it is answered*.
 - **compliance (2026-08-01, P11 slice 1, journal/0136) — the summary that was standing in for a
   measurement, retired.** `Litho::reference_material` was a fixed class→member table that
   the deep-cell inventory (`derive_base`) consulted for *"what rock weathered here"*, and

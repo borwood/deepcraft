@@ -909,6 +909,152 @@ pub fn solve_leg_ik(rig: &LegRig, target: [f64; 3]) -> LegIk {
     }
 }
 
+/// **Who owns which bone** — the static half of [`pose_for`]'s work, answered
+/// once per **(plan, clip set)** instead of rediscovered per body per frame.
+///
+/// # Why this type exists
+///
+/// Which segments an anim owns is fixed the moment the plan and its clips are
+/// defined: a clip's keyframes do not change between frames, and the gait's
+/// bearing chains come from the plan's limb declarations. Until 2026-08-04
+/// `pose_for` walked every keyframe and every rotation of every clip, into a
+/// fresh `Vec` per clip, **sixty times a second per body**, to rediscover an
+/// answer that could not have moved — and it measured: +22 % on a hot path
+/// (journal/0155). *"We're doing per-instance redundant math instead of it
+/// being owned per-plan"* (user). Seam-first practice #4, **granularity follows
+/// the hot loop**: a provider must never be called inside a hot loop to answer a
+/// question that does not change inside that loop.
+///
+/// The one genuinely per-frame quantity is the **gait's cycle duration**, which
+/// moves with speed — so it stays in the loop, and nothing else does.
+///
+/// # What it keys on, and when it goes stale
+///
+/// Ownership is a pure function of `(gait, clips)`, and those are exactly the
+/// two things `character.rs`'s [`BodyAssets`](../character/struct.BodyAssets.html)
+/// already holds by value. The table is built **in the same constructor, from
+/// the same clones** — so it cannot describe a plan or a clip set other than the
+/// one it lives beside (**S-3**, one authority: there is no second copy that
+/// could drift, because the copy *is* the input).
+///
+/// It therefore goes stale under exactly one condition — the plan or a bound
+/// clip is **redefined in the registry under the same name** — and that is not a
+/// new hazard: `BodyAssets` already caches the `BodyPlan` and the `AnimClip` as
+/// clones and is never invalidated on redefinition, so today a redefined clip
+/// changes nothing about an already-rendering body, table or no table. **The
+/// table inherits that staleness exactly, and adds none.** Whatever verb
+/// eventually invalidates a plan's assets (transmog has none yet; the rebuild
+/// path in `sync_characters` is by plan *name*) rebuilds this with them, because
+/// it is a field of the thing being rebuilt.
+///
+/// The client's [`AnimRate`] is deliberately **not** baked in: every rate-derived
+/// quantity here is three floating-point operations, and folding a setting into
+/// the table would buy a few nanoseconds for a second invalidation rule.
+///
+/// # The data shape is the one that won on measurement
+///
+/// Short name lists, no hashing (journal/0155): a `HashMap<&str, StepBlend>`
+/// measured 4945 ns against 4036 for lists, because a clip names two or three
+/// segments and a limb has two or three joints — a linear scan of a
+/// three-element slice beats sip-hashing outright at those sizes. Hoisting does
+/// not change that arithmetic; it only stops paying for the build.
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct PoseOwnership {
+    /// Every segment the gait derives an angle for: its limbs' neutral chains,
+    /// in limb order. Bearing and non-bearing alike — the gait owns the
+    /// counter-swing of an arm exactly as it owns a leg.
+    gait: Vec<Box<str>>,
+    /// One entry per clip, positionally matching the slice [`pose_for`] is
+    /// called with.
+    clips: Vec<ClipOwnership>,
+}
+
+/// One clip's static ownership.
+#[derive(Clone, PartialEq, Debug)]
+struct ClipOwnership {
+    /// The clip's registered name. Carried **only** so a caller handing
+    /// `pose_for` a clip set the table was not built from trips a debug
+    /// assertion instead of silently posing something else.
+    name: Box<str>,
+    /// The segments this clip owns: every segment it names in any keyframe,
+    /// minus the gait's bearing chains — **rule 3's refusal is refused ownership
+    /// too**, because a contribution that will not be applied may not drag the
+    /// bone's rate either.
+    segments: Vec<Box<str>>,
+}
+
+impl ClipOwnership {
+    fn owns(&self, name: &str) -> bool {
+        self.segments.iter().any(|s| &**s == name)
+    }
+
+    fn names(&self) -> impl Iterator<Item = &str> {
+        self.segments.iter().map(|s| &**s)
+    }
+}
+
+impl PoseOwnership {
+    /// Resolve ownership for one `(gait, clip set)` pair. **Call this at a pass
+    /// boundary, never in a frame loop** — that is the entire point of the type.
+    ///
+    /// Ownership is a property of the ANIM, not of the current keyframe bracket:
+    /// a clip that names a joint anywhere owns it for the whole cycle, or a
+    /// bone's rate would flicker as keyframes came and went — a new beat inside
+    /// the fix for a beat (journal/0155).
+    #[must_use]
+    pub fn of(gait: Option<&GaitVector>, clips: &[&AnimClip]) -> Self {
+        let mut gait_names: Vec<Box<str>> = Vec::new();
+        let mut bearing: Vec<&str> = Vec::new();
+        if let Some(g) = gait {
+            for limb in &g.limbs {
+                for ja in &limb.neutral {
+                    gait_names.push(ja.segment.as_str().into());
+                    if limb.bearing {
+                        bearing.push(ja.segment.as_str());
+                    }
+                }
+            }
+        }
+        let clips = clips
+            .iter()
+            .map(|clip| {
+                let mut segments: Vec<Box<str>> = Vec::new();
+                for kf in &clip.keyframes {
+                    for r in &kf.rotations {
+                        let name = r.segment.as_str();
+                        if !bearing.contains(&name) && !segments.iter().any(|s| &**s == name) {
+                            segments.push(name.into());
+                        }
+                    }
+                }
+                ClipOwnership {
+                    name: clip.name.as_str().into(),
+                    segments,
+                }
+            })
+            .collect();
+        Self {
+            gait: gait_names,
+            clips,
+        }
+    }
+
+    fn gait_owns(&self, name: &str) -> bool {
+        self.gait.iter().any(|s| &**s == name)
+    }
+
+    /// Whether this table was built from the clip set a call is passing —
+    /// checked in debug only, and the reason [`ClipOwnership::name`] is stored.
+    fn describes(&self, clips: &[&AnimClip]) -> bool {
+        self.clips.len() == clips.len()
+            && self
+                .clips
+                .iter()
+                .zip(clips)
+                .all(|(owned, clip)| &*owned.name == clip.name.as_str())
+    }
+}
+
 /// The pose to render for this state: **the derived gait, plus non-locomotion
 /// clips as an additive layer** (design § 6's composition rule).
 ///
@@ -945,12 +1091,28 @@ pub fn solve_leg_ik(rig: &LegRig, target: [f64; 3]) -> LegIk {
 /// steps derive from the same target and differ only by rounding. The body is
 /// therefore not one exact snapshot, and the user is explicitly not worried
 /// about that reading as buggy; this is why.
+///
+/// # 5. **Ownership is READ, not rediscovered** (2026-08-04)
+///
+/// `owners` is a [`PoseOwnership`] built once per (plan, clip set) at the pass
+/// boundary. This function used to build it here, per body per frame, walking
+/// every keyframe of every clip to answer a question fixed at define time — see
+/// that type for the measurement and the staleness rule. The signature is wider
+/// on purpose: the argument is the seam, and the seam is where the granularity
+/// changes.
 pub fn pose_for(
     state: &AnimState,
     gait: Option<&GaitVector>,
     clips: &[&AnimClip],
     rate: AnimRate,
+    owners: &PoseOwnership,
 ) -> Pose {
+    debug_assert!(
+        owners.describes(clips),
+        "the ownership table was built from a different clip set than this call \
+         passes — it is per (plan, clip set), and the two are built side by side \
+         in `character.rs::build_plan_assets` precisely so they cannot diverge"
+    );
     // The gait's own cycle, and the fallback for an anim with no usable one:
     // the client's base step, which is what "we do not know this cycle's
     // duration" honestly means.
@@ -958,59 +1120,28 @@ pub fn pose_for(
     let gait_step = gait_cycle.map_or(rate.step_s(), CycleGrid::step_s);
 
     // --- who owns what -----------------------------------------------------
-    // Ownership is a property of the ANIM, not of the current keyframe bracket:
-    // a clip that names a joint anywhere owns it for the whole cycle, or a
-    // bone's rate would flicker as keyframes came and went.
+    // **Read, not rediscovered** ([`PoseOwnership`]). Which segments an anim
+    // owns is fixed when the plan and its clips are defined, so it is answered
+    // once at the pass boundary — `character.rs`'s per-plan `BodyAssets` — and
+    // this hot loop only reads it. The one genuinely per-frame quantity is the
+    // gait's cycle, which moves with speed.
     //
-    // **Held as short name LISTS, not as a map, and that is a perf call with a
-    // receipt.** This runs per body per frame. A `HashMap<&str, StepBlend>` over
-    // ~20 bones cost ~60 sip-hashes and measured **+1.6 µs per body per frame**
-    // against a 3.3 µs baseline; a clip names two or three segments and a limb
-    // has two or three joints, so a linear scan of a three-element slice beats
-    // hashing outright at these sizes. `Vec::contains` on `&str` is a length
-    // check and a memcmp.
-    let mut bearing: Vec<&str> = Vec::new();
-    let mut gait_names: Vec<&str> = Vec::new();
-    if let Some(g) = gait {
-        for limb in &g.limbs {
-            for ja in &limb.neutral {
-                gait_names.push(ja.segment.as_str());
-                if limb.bearing {
-                    bearing.push(ja.segment.as_str());
-                }
-            }
-        }
-    }
-    // Per clip: its grid, its time step, and the segments it owns — bearing
-    // chains excluded, because rule 3's refusal is refused ownership too: a
-    // contribution that will not be applied may not drag the bone's rate either.
-    let mut clip_rates: Vec<(Option<CycleGrid>, f64, Vec<&str>)> = Vec::with_capacity(clips.len());
-    for clip in clips {
-        let cycle = rate.cycle(clip.duration_s);
-        let step = cycle.map_or(rate.step_s(), CycleGrid::step_s);
-        let mut named: Vec<&str> = Vec::new();
-        for kf in &clip.keyframes {
-            for r in &kf.rotations {
-                let name = r.segment.as_str();
-                if !bearing.contains(&name) && !named.contains(&name) {
-                    named.push(name);
-                }
-            }
-        }
-        clip_rates.push((cycle, step, named));
-    }
     // One bone's blended rate. Every layer contributes with unit weight (the
     // composition carries no blend weights anywhere), so a bone's `k` owners
     // hold `1/k` each and the blend is a mean; the weighted form is the seam for
     // the day layers carry real weights.
+    let clip_step = |clip: &AnimClip| -> f64 {
+        rate.cycle(clip.duration_s)
+            .map_or(rate.step_s(), CycleGrid::step_s)
+    };
     let blended = |name: &str| -> Option<f64> {
         let mut blend = StepBlend::default();
-        if gait_names.contains(&name) {
+        if owners.gait_owns(name) {
             blend.add(gait_step, 1.0);
         }
-        for (_, step, named) in &clip_rates {
-            if named.contains(&name) {
-                blend.add(*step, 1.0);
+        for (clip, owned) in clips.iter().zip(&owners.clips) {
+            if owned.owns(name) {
+                blend.add(clip_step(clip), 1.0);
             }
         }
         blend.step_s()
@@ -1040,11 +1171,12 @@ pub fn pose_for(
             }
         }
     }
-    for (clip, (cycle, _, named)) in clips.iter().zip(&clip_rates) {
+    for (clip, owned) in clips.iter().zip(&owners.clips) {
+        let cycle = rate.cycle(clip.duration_s);
         let live = clip_phase(clip, state.clock_s);
-        group_rates(named.iter().copied(), &blended, &mut rates, &mut groups);
+        group_rates(owned.names(), &blended, &mut rates, &mut groups);
         for &step in &groups {
-            let layer = sample_clip_at_phase(clip, phase_on(*cycle, step, live));
+            let layer = sample_clip_at_phase(clip, phase_on(cycle, step, live));
             for (name, euler) in layer.joints {
                 // Rule 3: the gait owns a bearing chain outright, so a clip's
                 // contribution to one is dropped here as it always was.
@@ -1731,12 +1863,19 @@ mod tests {
             (0.05, 0.0),
             (0.016, 4.0),
         ];
+        let owners = PoseOwnership::of(Some(&gait), &[&idle]);
         let run = || {
             let mut s = AnimState::default();
             let mut poses = Vec::new();
             for (dt, spd) in history {
                 s.advance(dt, Some(&gait), spd, AnimRate::default());
-                poses.push(pose_for(&s, Some(&gait), &[&idle], AnimRate::default()));
+                poses.push(pose_for(
+                    &s,
+                    Some(&gait),
+                    &[&idle],
+                    AnimRate::default(),
+                    &owners,
+                ));
             }
             poses
         };
@@ -1937,12 +2076,22 @@ mod tests {
     /// intermediate shapes were measured and rejected on this number: a
     /// `Vec` of owners per bone (**6445 ns**) and a `HashMap<&str, StepBlend>`
     /// (**4945 ns**); the shipped path holds ownership as short name lists and
-    /// hashes nothing. **The named heir for the rest is hoisting the ownership
-    /// tables into `character.rs`'s per-plan `BodyAssets`** — ownership is
-    /// constant per (plan, clip set) and only `gait_step` moves with speed, so
-    /// the whole pre-pass is per-plan work being redone per body per frame.
-    /// Not done here: it changes `pose_for`'s signature, and this slice is an
-    /// appearance change the user has yet to rule on.
+    /// hashes nothing.
+    ///
+    /// **✅ THE HEIR IT NAMED — the ownership hoist — LANDED THE SAME DAY**
+    /// ([`PoseOwnership`]; the tables are now built once per (plan, clip set) in
+    /// `character.rs::build_plan_assets`). *The caption above is a dated record
+    /// and stays; this is its banner.* What the hoist removed is measured by the
+    /// second loop below, **in this binary**, because a cross-binary before/after
+    /// was confounded: `sample_clip`, untouched by either change, differed ~14 %
+    /// between the two builds. Same loop, one difference — the table rebuilt per
+    /// call, which is what this function did until the hoist.
+    ///
+    /// **Poses are bit-identical across the hoist**, verified by dumping
+    /// `f64::to_bits` of every composed pose over 3 plans × 4 targets × 5 speeds
+    /// × 4 layer sets × gait/no-gait and diffing: 61 919 lines, same SHA-256.
+    /// That is the acceptance criterion for a re-housing; the timing is the
+    /// reason for it.
     #[test]
     fn per_frame_pose_cost_is_measured() {
         use std::time::Instant;
@@ -1952,18 +2101,21 @@ mod tests {
         let rate = AnimRate::default();
         let mut state = AnimState::default();
         state.advance(rate.step_s(), Some(&gait), 1.47, rate);
+        // Resolved once, exactly as `character.rs` resolves it once per plan —
+        // the whole point of the hoist, and the reason this is outside the loop.
+        let owners = PoseOwnership::of(Some(&gait), &[&idle]);
 
         let n = 20_000;
         // Warm both paths so neither pays first-touch costs in its timed run.
         for _ in 0..2_000 {
-            std::hint::black_box(pose_for(&state, Some(&gait), &[&idle], rate));
+            std::hint::black_box(pose_for(&state, Some(&gait), &[&idle], rate, &owners));
             std::hint::black_box(sample_clip(&walk, 0.3, rate));
         }
         let t0 = Instant::now();
         for i in 0..n {
             let mut s = state.clone();
             s.advance(1.0 / 60.0, Some(&gait), 1.47, rate);
-            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle], rate));
+            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle], rate, &owners));
             std::hint::black_box(root_offset_m(
                 Some(&gait),
                 0.0,
@@ -1974,6 +2126,34 @@ mod tests {
             std::hint::black_box(i);
         }
         let derived_ns = t0.elapsed().as_nanos() as f64 / f64::from(n);
+        // **The defect, measured in the same binary** (2026-08-04). Identical
+        // loop, one difference: the ownership table is rebuilt inside it, which
+        // is what this function did per body per frame until the hoist. Same
+        // binary, same code layout, same allocator state — the cross-binary
+        // comparison was confounded by layout (`sample_clip`, untouched by the
+        // change, differed 14 % between the two builds).
+        let t_reb = Instant::now();
+        for i in 0..n {
+            let mut s = state.clone();
+            s.advance(1.0 / 60.0, Some(&gait), 1.47, rate);
+            let rebuilt = PoseOwnership::of(Some(&gait), &[&idle]);
+            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle], rate, &rebuilt));
+            std::hint::black_box(root_offset_m(
+                Some(&gait),
+                0.0,
+                s.stepped_froude,
+                s.stepped_phase(Some(&gait), rate),
+                Posture::Standing,
+            ));
+            std::hint::black_box(i);
+        }
+        let rebuilt_ns = t_reb.elapsed().as_nanos() as f64 / f64::from(n);
+        // …and the pre-pass on its own.
+        let t_own = Instant::now();
+        for _ in 0..n {
+            std::hint::black_box(PoseOwnership::of(Some(&gait), &[&idle]));
+        }
+        let ownership_ns = t_own.elapsed().as_nanos() as f64 / f64::from(n);
         let t1 = Instant::now();
         for i in 0..n {
             std::hint::black_box(sample_clip(&walk, f64::from(i) / 60.0, rate));
@@ -1983,8 +2163,13 @@ mod tests {
         println!(
             "\nper-frame pose cost, one body: DERIVED gait + one clip layer + the \
              root offset = {derived_ns:.0} ns; the retired two-clip sample it \
-             replaces = {clip_ns:.0} ns ({:.2}x)",
-            derived_ns / clip_ns.max(1e-9)
+             replaces = {clip_ns:.0} ns ({ratio:.2}x)\n  \
+             the SAME loop rebuilding the ownership table per call (what this ran \
+             until 2026-08-04) = {rebuilt_ns:.0} ns, i.e. the hoist removed \
+             {saved:.0} ns ({pct:.1} %); the pre-pass alone = {ownership_ns:.0} ns",
+            ratio = derived_ns / clip_ns.max(1e-9),
+            saved = rebuilt_ns - derived_ns,
+            pct = 100.0 * (rebuilt_ns - derived_ns) / rebuilt_ns.max(1e-9)
         );
         assert!(
             derived_ns < 20_000.0,
@@ -2137,8 +2322,20 @@ mod tests {
         let rate = AnimRate::default();
         let mut state = AnimState::default();
         state.advance(rate.step_s(), Some(&gait), 1.5, rate);
-        let bare = pose_for(&state, Some(&gait), &[], rate);
-        let layered = pose_for(&state, Some(&gait), &[&clip], rate);
+        let bare = pose_for(
+            &state,
+            Some(&gait),
+            &[],
+            rate,
+            &PoseOwnership::of(Some(&gait), &[]),
+        );
+        let layered = pose_for(
+            &state,
+            Some(&gait),
+            &[&clip],
+            rate,
+            &PoseOwnership::of(Some(&gait), &[&clip]),
+        );
         let arm = "arm_l_upper";
         assert!(
             (layered.joints[arm][2] - bare.joints[arm][2]).abs() > 1e-9,
@@ -2149,6 +2346,75 @@ mod tests {
             "a clip may not contribute to a BEARING chain — that request is a \
              gait-type choice, not an animation"
         );
+    }
+
+    /// **What the hoisted ownership table is, stated as a property** — the gait
+    /// owns every segment on every limb it derives; a clip owns everything it
+    /// names **except** a bearing chain, because rule 3's refusal is refused
+    /// ownership too.
+    ///
+    /// This is the whole content of the per-frame pre-pass that moved to
+    /// `character.rs` on 2026-08-04, asserted as a composition property rather
+    /// than as a list of names, so it stays true of a plan nobody has written
+    /// yet. **It is also the S-3 guard**: the table is a pure function of
+    /// `(gait, clips)`, which is what makes the copy stored beside those clones
+    /// incapable of drifting from them.
+    #[test]
+    fn the_ownership_table_is_the_plan_and_its_clips_and_nothing_else() {
+        let plan = biped_plan();
+        let gait = gait_of(&plan);
+        // A clip that names a BEARING segment as well as its arms.
+        let mut clip = idle_clip();
+        clip.keyframes[0].rotations.push(dc_api::bodies::JointRot {
+            segment: "leg_l_upper".into(),
+            euler: [0.3, 0.0, 0.0],
+        });
+        let owners = PoseOwnership::of(Some(&gait), &[&clip]);
+
+        let mut bearing_seen = 0;
+        for limb in &gait.limbs {
+            for ja in &limb.neutral {
+                assert!(
+                    owners.gait_owns(&ja.segment),
+                    "the gait derives `{}` and must own it",
+                    ja.segment
+                );
+                if limb.bearing {
+                    bearing_seen += 1;
+                    assert!(
+                        !owners.clips[0].owns(&ja.segment),
+                        "a clip may not own `{}` — the gait owns a bearing chain \
+                         outright, and a contribution that will not be applied may \
+                         not drag the bone's rate either",
+                        ja.segment
+                    );
+                }
+            }
+        }
+        assert!(
+            bearing_seen > 0,
+            "this plan must bear, or the check is vacuous"
+        );
+        assert!(
+            owners.clips[0].owns("arm_l_upper"),
+            "…and a clip DOES own the non-bearing segment it names, or the \
+             exclusion above proves nothing"
+        );
+        // A pure function of its inputs — the property the per-plan copy rests
+        // on (S-3): rebuilding it from the same pair yields the same table.
+        assert_eq!(owners, PoseOwnership::of(Some(&gait), &[&clip]));
+        // …and it can tell a clip set it was not built from, which is what the
+        // debug assertion in `pose_for` reads.
+        assert!(owners.describes(&[&clip]));
+        assert!(!owners.describes(&[]));
+        let mut renamed = clip.clone();
+        renamed.name = "dc:anim/not_the_one".into();
+        assert!(!owners.describes(&[&renamed]));
+        // No gait is the identity fallback: nothing is bearing, so a clip owns
+        // everything it names, legs included.
+        let no_gait = PoseOwnership::of(None, &[&clip]);
+        assert!(!no_gait.gait_owns("arm_l_upper"));
+        assert!(no_gait.clips[0].owns("leg_l_upper"));
     }
 
     // --- per-cycle quantization (2026-08-04) -------------------------------
@@ -2326,9 +2592,10 @@ mod tests {
         let frames = (6.0 / (cadence * dt)) as usize; // six strides
         let mut leg: Vec<u64> = Vec::new();
         let mut arm: Vec<u64> = Vec::new();
+        let owners = PoseOwnership::of(Some(&gait), &[&idle]);
         for _ in 0..frames {
             state.advance(dt, Some(&gait), speed, rate);
-            let pose = pose_for(&state, Some(&gait), &[&idle], rate);
+            let pose = pose_for(&state, Some(&gait), &[&idle], rate, &owners);
             leg.push(pose.joints["leg_l_upper"][0].to_bits());
             arm.push(pose.joints["arm_l_upper"][2].to_bits());
         }
