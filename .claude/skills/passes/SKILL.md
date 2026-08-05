@@ -241,6 +241,42 @@ set only on a **full** strip, so a flagged unit is always the bottom-most and it
 predecessor is deleted. Zero interior flagged contacts world-wide. Whether that is a
 defect or merely unbuilt is **open**.
 
+**D-9 — 🔴 COMPOSITION IS DISCARDED AT THE MOMENT OF RECORDING, and this is the one to
+read first** (verified at source 2026-08-05; user's question). `record_cell` deposits the
+**full net thickness `dh`** under a **single** `species` — the argmax of the arriving
+mixture. A cell gaining 0.6 m of sandstone by river and 0.4 m of mudstone by creep in one
+epoch records **1.0 m of sandstone**. Mass survives; identity does not. Only a
+single-species arrival is lossless.
+- **The mixture exists, fully formed, one line before the write.** Transport carries
+  per-species rows; the recorder builds a complete mixture array across the whole species
+  axis, takes the argmax, and drops the rest in the same function. The surrounding
+  reasoning is careful and correct — about **who wins** (the two movers are summed, never
+  ranked, so the answer cannot depend on call order). Nothing reasons about the **discard**.
+- **This is D-7's twin, and together they are the shape of the whole problem.** Twice the
+  deep sim computes composition and stores a summary of it:
+
+  | | the sim knows | the store keeps |
+  |---|---|---|
+  | **faces** | per-species load crossing each face | one bulk load figure |
+  | **units** | the full arriving mixture | one winning material |
+
+  That is `ARCHITECTURE.md` § *a summary is not an authority* at the deepest layer in the
+  stack — and unlike the usual case, **the authority is not unavailable.** It is in scope
+  at the write.
+- **Consequence for the refinement/margin work:** correlating between two boreholes blends
+  names that may each already be a flattened mixture, so rendering mixtures at margins is
+  partly *reconstructing composition the sim had and discarded*. Better justification for
+  the blend than the design pass had; worse indictment of the record.
+- **Consequence for "should the record carry distributions":** that is **not** a storage
+  upgrade, it is **stopping a discard**. The tracking is built. The cost question (the unit
+  is a deliberately packed 8 bytes across ~7.3 M units) is real and separate.
+- **UNMEASURED, cheap, and owed before anyone argues remedies:** what fraction of recorded
+  metres loses its identity? Sum the non-winning mass at each deposit against total
+  recorded metres. Headless, one probe.
+- **Not found:** any reasoning about the discard itself — only about how to pick the
+  winner. Whether the argmax was ever a decision, or just what one-material-per-unit
+  forced, is open.
+
 ## 6. What generalising weathering appears to mean
 
 **Assistant analysis, 2026-08-05, unratified — recorded as the session's reading, not as
