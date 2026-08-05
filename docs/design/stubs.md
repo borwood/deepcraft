@@ -2017,3 +2017,24 @@ setting*, which is the file anyone touching the rate opens.
 wants a mechanical body cannot ask for one · a walk verdict taken at one target says nothing
 about a body that would have capped itself · **not** the sim: a cap is still client-side
 *approach*, so it moves nothing across the firewall.
+
+### 54. weights-mirrored-instead-of-sourced — *added 2026-08-04 (S1, the correlation kernel, journal/0156; the slice author flagged it in-code as an A-1 risk)*
+
+**The stand-in:** `correlate.rs::bilinear_weights` reproduces four lines of
+`dc_core::coarse::CoarseField::stencil` (private, `dc-core/src/coarse.rs`) rather than
+calling it. It exists so that invariants 2 and 3 — statements *about* those weights
+(the Lipschitz bound, pinch-out monotonicity) — are testable in `dc-worldgen` without
+S1 widening another crate's API for a kernel that has no consumer yet.
+
+**Why it is a stand-in and not a defect:** it is A-1's exact shape — a stand-in
+hardening into a definition — caught and marked by its own author before it could.
+Two copies of a weight rule is one copy too many the moment either moves; today they
+agree by construction and by test.
+
+**Heir: S2, the wiring slice.** When `column()` consumes the kernel, weights come from
+the field's own stencil (widen `CoarseField`'s API, or pass the stencil in) and this
+function dies. **Deadline: S2's merge** — it must not survive into a shipped consumer.
+
+**Blast radius:** nil today (nothing calls the kernel). After S2, a divergence between
+the two copies would put expression on different weights than the field believes,
+which is a silent appearance defect — hence the deadline rather than a soft owe.
