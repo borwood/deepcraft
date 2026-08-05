@@ -4862,7 +4862,10 @@ the **parallel bodies session was running at that moment**. Probe examples carry
 exe cannot be relinked. **This is machine contention in the shared `CARGO_TARGET_DIR`, not
 a code red** — no test failed; nothing linked. **S1's batch debt is therefore NOT cleared
 and carries to S2's arc-chunk gate** (its own boundary anyway). **A lib-only run DID complete: `--workspace --lib --release`
-= 296 passed / 0 failed across 6 crate suites** (it cannot touch example targets), so the
+= 514 passed / 0 failed across 7 suites, exit 0** *(this line first read "296/0 across 6" —
+a number quoted from a log that was still being written, corrected at close from the final
+`LIB_EXIT=0` tail; the gate's own rule about reading the finished log, applied to its own
+wrap)* (it cannot touch example targets), so the
 library code — including S1's new `correlate` module — is verified; what is unverified is
 the **integration + probe-gate layer** (S1's 10 correlation invariants live in
 `tests/correlation.rs` and did not run here).
