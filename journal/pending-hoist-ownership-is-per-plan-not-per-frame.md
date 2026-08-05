@@ -140,6 +140,37 @@ property test — the gait owns every segment on every limb it derives, a clip o
 everything it names except a bearing chain, and the table is a pure function of its two
 inputs. That stays true of a plan nobody has written yet.
 
+## A false RED, and how it was caught: a test that does not exist
+
+The workspace gate came back **1032 passed, 1 failed**, with the failure in
+`dc-worldgen`'s `creep_operator_probe` — a crate this slice does not touch — plus
+`-p dc-worldgen --doc` failing to compile on `unresolved import
+dc_core::field::ExplicitPlan`. Neither is plausible from a `dc-client` re-housing, so
+the first instinct is "flaky, ignore it." That instinct is what corrections #27 exists
+to punish.
+
+The check that settled it took one grep. **The failing test's name does not exist
+anywhere in this checkout.** `creep_operator_probe.rs` here declares exactly two gate
+tests; the binary the gate ran declared **five**, including
+`the_implicit_scheme_never_flips_the_grid_scale_mode`. Likewise, the string
+`dc_core::field::ExplicitPlan` appears in no file here — while `ExplicitPlan` itself is
+a perfectly public `dc-core` type, so the import *should* resolve, and the doctest that
+failed to write it is simply not one of ours. Re-running both targets alone recompiled
+`dc-worldgen` **from this worktree** and returned `2 passed / 0 failed` and `0 doctests
+/ ok`.
+
+So: **another session's `cargo test --workspace --release` was live on the shared
+`CARGO_TARGET_DIR` for the whole run, and its artifacts were served to my gate.** That
+is corrections #27's mechanism running in the opposite direction — not the false GREEN
+where your code never built, but the false RED where *someone else's* did. The build-slot
+hook is supposed to make this impossible; I watched two cargo processes coexist for most
+of the run, so it did not.
+
+The generalisable bit is the discriminator, and it is better than "did it pass?": **count
+the tests and read their names.** A suite that runs five tests where the source declares
+two is not a failing suite, it is somebody else's suite. *"Did it run?" is a separate
+question from "did it pass?" — and "whose code ran?" is a third one.*
+
 ## What is deliberately not here
 
 - **The `body.rs` module extraction.** The file is over 3400 lines and the size hook
