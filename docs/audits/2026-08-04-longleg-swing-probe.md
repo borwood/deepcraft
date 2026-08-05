@@ -255,12 +255,16 @@ Three tests, **0.14 s total added to the gate**:
 - `cargo test -p dc-client --release --bin dc-client swing_probe` — **3 passed, 0 failed**,
   0.14 s, after a `cargo clean -p dc-client --release` and with `Compiling dc-client
   v0.1.0 (…agent-a1278ece9156f340b…)` verified in the log.
-- `cargo test --workspace --release` — **started, and still running at hand-off**: 33 of
-  ~94 suites reported, **0 failures**, stalled in `dc-worldgen`'s `deeptime_integration`.
-  ⚠ **The workspace count is therefore NOT verified against the 1029/0/94 baseline.** The
-  change is a `#[cfg(test)]` module in `dc-client` plus one `mod` line; nothing outside
-  that crate can see it, and clippy `--all-targets` compiled every crate. But that is an
-  argument, not a run, and it is recorded as such.
+- `cargo test --workspace --release` — **RUN, THEN DELIBERATELY STOPPED AT 34/~94 SUITES,
+  0 FAILURES.** It reached `dc-worldgen`'s `distribution_fill` after ~2 h wall clock
+  (`deeptime_integration` alone took 866 s of CPU), with **another session's workspace gate
+  queued behind it on the build-slot mutex**. Stopping my own diagnosed PIDs was the lesser
+  cost; the other session's `--no-fail-fast` run produces the same number.
+  ⚠ **The workspace count is therefore NOT verified against the 1029/0/94 baseline, and
+  I cannot attribute a delta.** The argument that there is none — a `#[cfg(test)]` module
+  in `dc-client` plus one `mod` line, invisible outside that crate, with clippy
+  `--all-targets` having compiled every crate and target — is an **argument, not a run**,
+  and is recorded as such. The full trio is owed at merge.
 
 ⚠ **`scripts/standin_locus_check.py`**: 14 markers, **1 with no resolvable locus** —
 `crates/dc-worldgen/src/deeptime/recorder.rs:832` ("chapter and epoch DISAGREE after an
