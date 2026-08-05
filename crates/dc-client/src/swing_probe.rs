@@ -554,7 +554,7 @@ mod gate {
             .position(|s| s.phase >= pk - 1e-12)
             .unwrap_or(0);
         println!(
-            "      {:>7} {:>7} {:>5} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}  {}",
+            "      {:>7} {:>7} {:>5} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}  decision",
             "phase",
             "u",
             "sw",
@@ -565,8 +565,7 @@ mod gate {
             "gaitsole",
             "foot_z",
             "d_plan",
-            "adjust",
-            "decision"
+            "adjust"
         );
         for k in 0..9 {
             let i = (centre + n + k - 4) % n;
