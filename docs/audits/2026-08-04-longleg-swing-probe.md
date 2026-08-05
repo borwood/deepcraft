@@ -118,7 +118,7 @@ a steep slope.
 | candidate | verdict | the number |
 |---|---|---|
 | **1. half-voxel override window** (`character.rs:313`, 0.45 m) | **RULED OUT — 33×** | the gait's sole never leaves **[−13.49, +12.66] mm**. It would need 450 mm to reach the window's edge. `OutsideWindow` never occurs at any sampled phase. |
-| **2. B7 `d_min` sector boundary** (`body.rs:884`) | **RULED OUT — 5.2×** | `min(d_planar)/d_min` = **5.245** (longleg), **1.812** (stout), **4.527** (biped). `BeyondFlexion` is never returned; `refused_by_limits` is 0 at every sample. |
+| **2. B7 `d_min` sector boundary** (`body.rs:884`) | **RULED OUT — 5.2×** | `min(d_planar)/d_min` = **5.245** (longleg), **1.812** (stout), **4.527** (biped). `BeyondFlexion` is never returned — `RefusedByLimits` appears at no sampled phase, on any plan, at any of the three speeds. |
 | **3. per-cycle quantization** (journal/0155) | **RULED OUT as the cause; it is an AMPLIFIER** | the discontinuity is fully present in the **continuous** trace (5.0200°), and its **phase does not move with the pose grid** — identical at `--anim-fps 60` (N = 63) and `--anim-fps 12` (N = 13). What quantization does is *enlarge* the visible step: 5.0200° continuous → **12.2558°** at 60 fps → **19.2112°** at 12 fps, because the held pose lands further down the steep stretch. |
 | **4. a fourth thing** | **THIS ONE** | the **1 mm seated guard** at `character.rs:313`, sitting on the solver's singular point because the derived root puts a grounded sole exactly on the annulus boundary. Neither the guard nor the root placement is wrong on its own; their composition is what jumps. |
 
