@@ -392,7 +392,7 @@ re-deriving them.
 | **Fjord** | overdeepening **below sea level** + a shallow sill at the mouth | **ice** — water cannot erode below base level |
 | **Foothill** | differential erosion of **tilted** beds: strike ridges, dip slopes, cuestas | **dip/strike** (the per-material resistance already exists) |
 | **Valley** | discharge, incision, base-level history, floodplain vs channel, terraces | mostly **facts already held and never read** |
-| **Badlands** | drainage density at **metre** spacing on weak unvegetated rock | not a fact — a **sub-cell process** |
+| **Badlands** | drainage density at **metre** spacing on weak unvegetated rock | facts we may already hold (runoff, weakness, vegetation cover) + **an OPERATOR** whose output space contains dense dissection |
 | **Great Plains** | very low relief; the interest is **surface material** | nearly nothing new |
 | **Sea trench** | subduction geometry, asymmetric profile, accretionary wedge | **plate boundary polarity** (unchecked) |
 | **Ocean floor** | thermal subsidence (depth ∝ √age) + pelagic sediment **draping** basalt fabric | **seafloor age**, sediment thickness |
@@ -408,13 +408,20 @@ re-deriving them.
   erosion exists — per-material resistance at member grade, a weathering pass reading the real
   surface material — **except that flat beds erode to flat benches.** Tilt them and ridges and
   valleys fall out of machinery we already have. Very high landscape-per-missing-fact ratio.
-- **Badlands are not a fact problem at all.** Channel spacing is *metres*; storing that would be
-  recording the answer rather than the cause. They need refinement to run **its own small
-  drainage solve inside the cell**, seeded by recorded runoff, material weakness and vegetation
-  — which is exactly the channel operator's design (`refinement.md` § 7.1: *"a boundary-value
-  solve inside the cell, faces as Dirichlet data, budget spent along the solution path"*).
+- **Badlands are not a fact problem, and THERE IS NO BADLANDS OPERATOR** (user, 2026-08-05).
+  Channel spacing is *metres*; storing that would be recording the answer rather than the cause.
+  What expresses it is a **general** operator — the channel operator's *"boundary-value solve
+  inside the cell, faces as Dirichlet data, budget spent along the solution path"*
+  (`refinement.md` § 7.1) — fed recorded runoff, material weakness and vegetation cover.
+  **Dense dissection is a REGION OF ITS OUTPUT SPACE**, emergent from the facts; *"badlands-like"*
+  is a thing a human says about the result and never a thing the engine represents.
   **So badlands are that operator's acceptance test**, and they are honest under § 1's ruling
-  because the relief comes from a process.
+  because the relief traces to facts a deeptime process recorded.
+  > **⚠ AND THIS IS A-7 EXTENDED TO LANDFORMS.** An operator that names a landform has bound
+  > itself to one world's geography exactly as a process naming `SANDSTONE` binds itself to one
+  > pack's roster. **Key on the terms — runoff, erodibility, vegetation — never on the
+  > landform.** Same resolution procedure: *what property of that landform are you actually
+  > reaching for? That property is the feature the operator lacks.*
 
 ### 7.3 The five categories, and they are THREE different refactors
 
@@ -427,13 +434,36 @@ re-deriving them.
 3. **Rock properties beyond erodibility — jointing.** Cliff-versus-talus is a rock-mass-strength
    question. We have grain size, cohesion, density. *Open: whether jointing derives from terms
    already declared (a `roster` question) or is a new axis.*
-4. **Sub-cell PROCESS, not sub-cell facts** — badlands, gullies, talus cones, meander detail.
-   Wants operators, not storage.
+4. **Sub-cell EXPRESSION** — badlands, gullies, talus cones, meander detail. Wants **operators**,
+   not storage: finer than any record should hold, and reconstructible from facts that exist.
 5. **Facts held and lost or never read** — composition discarded at deposition (D-9) and at the
    faces (D-7); drainage, head, exhumation, geotherm built and idle.
 
-> **The split worth carrying: RECORD THE FACT · RUN THE PROCESS · BUILD THE AGENT.** Three
-> refactors with different owners and different costs, and they are routinely conflated.
+### The split worth carrying — CORRECTED 2026-08-05 by the user
+
+> **RECORD THE FACT · BUILD THE AGENT · BUILD THE OPERATOR.**
+
+*An earlier draft of this line read "record the fact · **run the process** · build the agent",
+which was wrong in a way worth preserving: it implied refinement runs processes.* **It does not.
+Refinement reads the outputs of deeptime — that is the whole of what it does** (user, restated
+2026-08-05).
+
+| | where it lands | what it means |
+|---|---|---|
+| **RECORD THE FACT** | **deeptime** | the process already runs; the store drops or never held what expression needs (D-7, D-9), or a new field is owed (structural attitude) |
+| **BUILD THE AGENT** | **deeptime** | the process does not exist at all — **building it means building an agent into the SIM so that it records its facts** (ice, dissolution). Not a refinement concern in any part |
+| **BUILD THE OPERATOR** | **refinement** | the facts exist and nothing expresses them (the channel operator over the idle flux record) |
+
+**The dependency direction is always `agent → fact → operator`**, and it is a hard ordering: an
+operator cannot express a fact that was never recorded, and a fact cannot be recorded by a
+process that does not exist. Which of the three a landform needs is a per-landform question — the
+fjord needs all three, the foothill needs the first, a valley needs mostly the third.
+
+**An operator may SOLVE and still be honest** — the channel operator's boundary-value solve is
+legal because it solves for **arrangement given recorded facts**, never for **history**. It
+advances no clock, evolves no state, and produces no new facts. *Given* that this much material
+crossed these faces under this budget, it answers **where within the cell it went**. That is
+expression. A solve that discovered anything would be a second simulation and is forbidden.
 
 ### 7.4 What could be rendered honestly today (assistant-originated)
 
