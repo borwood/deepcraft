@@ -135,3 +135,63 @@ enumeration, plus one design call on mover/cause unification. **Neither needs co
 ---
 
 *(Items 3–14 append below as they are walked.)*
+
+## 3. ITEM 3 — the composition discard (D-9 / D-7) ⚠ WALKED, ONE QUESTION OPEN
+
+### 3.1 📌 IT WAS DESIGNED, COSTED AND RULED — this is not an unnoticed oversight
+
+The integrator framed D-9 as a defect nobody had reasoned about. **The design pass reasoned
+about it explicitly and the user ruled on it.**
+
+📌 `docs/audits/2026-08-01-members-into-history-design.md` § 3.1 (Option A, the one that
+shipped) states the consequence in as many words:
+> *"a unit is still **one identity**. **A bed that is 60 % sandstone / 40 % siltstone records
+> as sandstone.** The composition the record-terms slice wants (ruling 1) is a **face**
+> quantity, not a unit quantity — see Option B."*
+
+📌 **Option B — a share vector per unit — was priced and rejected on arithmetic:** +42.23 MiB at
+7 shares, +84.47 MiB at 14, **+168.94 MiB at 26**, against a whole-field residency of
+**108.55 MiB**. The doc's own verdict: *"the option the arithmetic is hostile to."*
+
+📌 **And ruling 3 (user, 2026-08-02) chose FACE:** composition rides a **sparse CSR sidecar on
+the flux record**; **`DepUnit` stays single-species**. Stated rationale: *directional provenance
+for the refinement operators.*
+
+⬦ **So D-9's real contribution is not "nobody noticed." It is "the reasons may now be stale."**
+
+### 3.2 ⬦ Two things have changed since that ruling
+
+**(a) The costing was DENSE, and sparse later beat dense.** Option B was priced as a dense share
+vector per unit. **P11 slice 2 then shipped CSR planes at 0.70× the dense they replaced**, and
+slice 3 shipped the packed 8 B unit. A *sparse* per-unit distribution — most units really are
+one species — was never costed. **The arithmetic that killed Option B may no longer hold, and
+re-costing it is cheap.**
+
+**(b) The refinement ruling (2026-08-05, § 0) makes the unit's single identity a CEILING ON
+APPEARANCE, not just on provenance.** If refinement may express only what deeptime persisted,
+then a bed recorded as one species **can never be expressed as a mixed bed** — the refiner has
+nothing to read. Under the pre-2026-08-05 framing that was a provenance limitation; now it is a
+limit on what the world can look like.
+
+### 3.3 ⚠ THE OPEN QUESTION — put to the user, not resolved here
+
+**Does ruling 3's FACE sidecar actually give refinement what the honesty ruling now requires?**
+
+⬦ The integrator's doubt, stated as doubt: a face records **what crossed a boundary**; a bed is
+**what settled in a cell**. Face composition plus the settling arithmetic *might* let a refiner
+reconstruct a deposited mixture, or might only ever answer *which direction material came from*
+— which is what ruling 3's own rationale says it is for. **If the second, then FACE and UNIT are
+answering different questions and choosing one did not dispose of the other.**
+
+**Not resolvable from the desk.** What would settle it: trace whether the face record plus `dh`
+is sufficient to reconstruct the arriving mixture at a cell, or whether the argmax destroys
+information the faces never held.
+
+### 3.4 Owed measurements (both still untaken)
+
+- **The identity-loss fraction** — what share of recorded metres is relabelled by the argmax.
+  Sum non-winning mass at each deposit against total recorded metres. Cheap, headless.
+- **A re-cost of a SPARSE per-unit distribution**, against the post-slice-3 baseline.
+
+⬦ *Both should precede any remedy. corrections **#57** is the worked case where the argmax
+produced a wrong world and is the strongest existing argument on this item.*
