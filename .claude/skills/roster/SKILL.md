@@ -162,7 +162,7 @@ the pack — whatever remains is engine, and it must be featureless and conserva
   wood/charcoal `combust→` resolution as the first build; the density/porosity
   sheet reconciliation rides the same design pass.
 - **⚠ AND A LIVE CONSUMER IS ALREADY BLOCKED ON IT — measured 2026-08-04 (S1,
-  journal/0156):** P-1's ruled M-C continuum predicate **cannot be built today**
+  journal/0157):** P-1's ruled M-C continuum predicate **cannot be built today**
   because **no material declares a REGION**. `MaterialProps` is point-valued
   (`grain_size_mm` is one characteristic value), and the FS-A release spectra
   describe what a rock **sheds**, not where it **sits** — granite's products span

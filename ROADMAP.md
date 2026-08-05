@@ -19,7 +19,7 @@ read live, never when it gets old.**
 
 ## In flight
 
-- **✅ S1 SHIPPED 2026-08-04 (journal/0156, merged): the correlation kernel.** The
+- **✅ S1 SHIPPED 2026-08-04 (journal/0157, merged): the correlation kernel.** The
   deposition clock made the rule *smaller* — the shared partition is the sorted union
   of the epochs the parents stamp, interval *k* IS epoch *k*, no bed is ever split.
   Pinch-out, P-4's onlap feather and seam-freeness all fall out with **no branch in
@@ -466,7 +466,7 @@ sequence — each names its authority docs rather than restating them.
   pinned), exactly the 6 GOLDEN_RECORD* families re-captured once, all others
   byte-still; full trio **fmt 0 · clippy 0 · 1006/0 · 94 suites**. New stand-in:
   stubs #52 (epoch immutable under overprint; alteration-time axis is the heir).
-  **✅ S1 SHIPPED 2026-08-04** (journal/0156 — the epoch-keyed join; see § In flight for
+  **✅ S1 SHIPPED 2026-08-04** (journal/0157 — the epoch-keyed join; see § In flight for
   what it inherits to S2). ~~**NEXT: S0**~~ **✅ S0 DONE 2026-08-04** (`2026-08-04-s0-correlation-measurements.md`,
   merged): I-5 = **(ii) lazy per-column evaluation** (naive = +104.8 % of `column()`;
   (iii) not needed); 2×2 epoch-partition mean 44.9 / p95 145 (clock 4.2× finer than
@@ -525,7 +525,7 @@ derived — the sheet's two-convention defect, roster skill § 2 step 1 caveat).
 bodies.
 
 **⚠ A THIRD CONSUMER APPEARED 2026-08-04, AND IT IS A LIVE BLOCKER — S1 measured it
-(journal/0156):** P-1's ruled **M-C continuum predicate is not buildable today**, and
+(journal/0157):** P-1's ruled **M-C continuum predicate is not buildable today**, and
 the reason is exactly this entry's subject. The ruling needs *regions adjoining on a
 declared axis*; **no material declares a region** — `MaterialProps` is point-valued,
 and FS-A's release spectra describe what a rock **sheds**, not where it **sits**

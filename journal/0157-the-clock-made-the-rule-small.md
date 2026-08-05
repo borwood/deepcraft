@@ -2,6 +2,11 @@
 
 *2026-08-04 · the geo session · S1 of the correlation arc — the kernel, unwired*
 
+*(Renumbered 0156→0157 at integration: the parallel bodies session had already captured
+`journal/assets/0156-quant-*` for its 12 fps walk. The geo entry was committed first but
+had no assets; renaming text is cheaper than renaming four screenshots, and it leaves an
+in-flight walk write-up undisturbed. Sixth ordinal collision of the parallel pattern.)*
+
 > blogworthy: **lens 2 (procgen against priors)** — a design pass reasoned carefully to a
 > proportional correlation rule, and a small storage change one day later made the rule
 > *smaller* rather than better; the road not taken (sequence alignment) is the one a human

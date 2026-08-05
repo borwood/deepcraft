@@ -2018,7 +2018,7 @@ wants a mechanical body cannot ask for one · a walk verdict taken at one target
 about a body that would have capped itself · **not** the sim: a cap is still client-side
 *approach*, so it moves nothing across the firewall.
 
-### 54. weights-mirrored-instead-of-sourced — *added 2026-08-04 (S1, the correlation kernel, journal/0156; the slice author flagged it in-code as an A-1 risk)*
+### 54. weights-mirrored-instead-of-sourced — *added 2026-08-04 (S1, the correlation kernel, journal/0157; the slice author flagged it in-code as an A-1 risk)*
 
 **The stand-in:** `correlate.rs::bilinear_weights` reproduces four lines of
 `dc_core::coarse::CoarseField::stencil` (private, `dc-core/src/coarse.rs`) rather than
