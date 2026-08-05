@@ -4,6 +4,10 @@
 below is printed by `swing_probe::gate::the_longleg_swing_is_measured`
 (`cargo test -p dc-client --release --bin dc-client swing_probe -- --nocapture`).
 
+*Line numbers in `body.rs` / `character.rs` are as of `35bf942`. A concurrent slice was
+hoisting per-frame work into `BodyAssets` in both files while this ran; the **symbols** are
+the durable references, the line numbers may have moved.*
+
 ## The observation (user, 2026-08-04 walk, station 2, `--anim-fps 60`)
 
 > *"the longer legged one has a little weirdness in the forward swing of walking leg
