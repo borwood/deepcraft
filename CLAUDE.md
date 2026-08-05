@@ -389,6 +389,33 @@ world**, which cost one background probe instead of a live session (corrections 
   goldens **with the why recorded** — it owes no byte-identicality and no ratification
   loop on the new bytes. Never argue a design or a hold from the fixture's current bytes
   (the fixture-state sibling of [[placeholder-state-is-not-intent]]).
+  - **⚠ AND THE PACK IS A SCRATCH PAD TOO — not just the world (user, 2026-08-04).** *"The shipped
+    pack, the content: **is a scratch pad**. We do not know what it will be yet. We are building it
+    from the inside out. We are not married to anything. We are discovering and following our
+    principles. There is no other way to build it. **We can't be sentimental about things just
+    because they exist in an arbitrary shape right now.**"* This reaches the **body plans, the
+    clips, the fixture bodies** — everything the default pack contains — not only the voxel world
+    and its goldens.
+  - **So an engine primitive MAY change how the shipped pack looks.** *"Frankly, adding an engine
+    primitive could change what the shipped pack already looks like."* **There is no additivity bar
+    and no byte-identity bar** on a primitive that is correct. *(The integrator asserted one on
+    2026-08-04 — "a body primitive's neutral must be good enough to ship" — extrapolated from B7's
+    identity default, which was byte-identical only because it happened to be **purely additive**.
+    Withdrawn; `dependency-graph.md` § 0a corrected the same day. It was the
+    byte-identity-as-a-TARGET trap this very section names, re-derived as a rule.)*
+  - **THE PROTOCOL, in the user's words — announce, then go:**
+    > **Loudly say "this will change the way the fixture world / pack looks, and *this is how*, and
+    > *this is why it's aligned with the project*" — and then the user says "go".**
+
+    All three parts are required. *"It will look different, please bless it"* is the loop we already
+    had; **the load-bearing addition is the third clause** — the principle the change serves. A
+    change that cannot name its alignment is not ready to be shown; one that can is usually
+    obviously right once stated.
+  - **The engine is a GAME ENGINE, not a game** (same ruling). Plugins make it a game. A primitive
+    that has not yet been in a content maker's hands owes nobody a presentable default — and it must
+    not foreclose content: ***assume a mod should be able to make a robot or a golem alongside a
+    physically realistic person or animal***. That is why a world-global constant like a fixed turn
+    rate is not merely underived — **it makes a legitimate body unauthorable**.
 
 - **A CLOSED SYSTEM CANNOT DETECT ITS OWN SCALE ERROR** (2026-07-26, journal/0111 —
   and it cost us ~1000×). The deep sim was **perfectly self-consistent at the wrong

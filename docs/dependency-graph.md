@@ -62,11 +62,33 @@ range is engine, **distribution is pack, and the pack owns fairness**. The shipp
 supply its sign** (our bodies are mirror-symmetric fore-and-aft — they have no front), and returns
 `Undetermined { reason }` rather than inventing one (test: `an_unbounded_joint_is_loudly_undetermined`).
 
-**⚠ One asymmetry with geo, and it constrains how far machinery may move:** *"no pack"* is
-unreachable for geology — without a roster there is no world, so nobody ever experiences
-engine-only worldgen. For bodies it is **reachable and shipping**: characters render every frame
-today. So a body primitive's neutral answer must be **good enough to ship**, not merely honest.
-B7 set the bar with a byte-identical identity default; hold every future move to it.
+**One asymmetry with geo:** *"no pack"* is unreachable for geology — without a roster there is no
+world, so nobody ever experiences engine-only worldgen. For bodies it is **reachable and shipping**:
+characters render every frame today.
+
+> **⚠ THE CONCLUSION THE INTEGRATOR DREW FROM THAT IS WITHDRAWN (user, 2026-08-04).** This entry
+> read *"a body primitive's neutral answer must be good enough to ship, not merely honest — B7 set
+> the bar with a byte-identical identity default; hold every future move to it."* **B7 does not
+> support that.** Its identity default was byte-identical because the slice was **purely additive**
+> — it added a capability nothing had declared against yet. That is a fact about B7's shape, not a
+> bar for every primitive.
+>
+> The user's ruling: *"the engine is **a game engine, not a game**. The plugins make it a game… I
+> don't know if I agree that a body primitive's neutral must be good enough to ship as anything
+> other than a game engine primitive that hasn't been in a content maker's hands yet."* And:
+> *"frankly, adding an engine primitive **could** change what the shipped pack already looks like
+> — the shipped pack, the content, **is a scratch pad**."* **No additivity bar, no byte-identity
+> bar.** The gate is the announce-then-go protocol in `CLAUDE.md` § Conventions (what changes · how
+> · **why it is aligned with the project**), not a preservation rule.
+>
+> *This was the byte-identity-as-a-TARGET trap the corpus already names — held as a bar rather than
+> used as a detector — re-derived as a rule by the integrator three times in one day.*
+>
+> **What the asymmetry does still imply:** a primitive must not **foreclose content**. Assume a mod
+> should be able to build **a robot or a golem alongside a physically realistic person or animal** —
+> so a world-global behavioural constant (a fixed turn rate, a fixed step rate) is not merely
+> underived, it makes a legitimate body **unauthorable**. That is the real constraint, and it is
+> stronger than the one it replaces.
 
 ### 0b. THE TEST: is it an OPINION or an ABSENCE? (assistant-proposed 2026-08-04, **USER-RATIFIED** same day)
 
