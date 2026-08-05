@@ -114,10 +114,11 @@ a steep slope.
 | **3. per-cycle quantization** (journal/0155) | **RULED OUT as the cause; it is an AMPLIFIER** | the discontinuity is fully present in the **continuous** trace (5.0200°), and its **phase does not move with the pose grid** — identical at `--anim-fps 60` (N = 63) and `--anim-fps 12` (N = 13). What quantization does is *enlarge* the visible step: 5.0200° continuous → **12.2558°** at 60 fps → **19.2112°** at 12 fps, because the held pose lands further down the steep stretch. |
 | **4. a fourth thing** | **THIS ONE** | the **1 mm seated guard** at `character.rs:313`, sitting on the solver's singular point because the derived root puts a grounded sole exactly on the annulus boundary. Neither the guard nor the root placement is wrong on its own; their composition is what jumps. |
 
-`swing_gain` (stubs #43) is **not** the cause but it is in the loop: it scales the
-mid-swing lift by 0.9094 at this speed, which is part of why the sole sits so close to the
-ground and crosses the band so often. The clearance blend itself is C0-continuous (its
-kink at mid-swing is C1 and shows as a slope change, not a step).
+`swing_gain` (stubs #43) is **not** the cause but it is in the loop: below a normal walk it
+fades the mid-swing lift, which is part of why the sole sits close enough to the ground to
+cross the 1 mm band six times. The clearance blend itself is C0-continuous — its kink at
+mid-swing is C1 and shows as a slope change, not a step, which is why the within-decision
+statistic refines cleanly.
 
 ## 4. Why the stout "does not show it" — the comparative does NOT reproduce
 
@@ -166,7 +167,7 @@ already named that as the missing instrument.
 |---|---|---|---|---|---|
 | 0.15 | 0.675 | 0.04553 | 0.5090, 0.6430, 0.6740, 0.8265, 0.8575, **0.9915** | **4.7580°** | [−3.85, +5.52] mm |
 | 0.30 | 1.350 | 0.18214 | 0.5025, 0.6635, 0.6740, 0.8265, 0.8370, **0.9980** | **5.0200°** | [−13.49, +12.66] mm |
-| 0.50 | 2.250 | 0.50594 | 0.2275, 0.2730 (**stance**), 0.7480, 0.7525 | **0.1605°** | [0.00, +118.98] mm |
+| 0.50 | 2.250 | 0.50594 | 0.2275, 0.2730 (**stance**, 0.1605° each); 0.7480, 0.7525 (swing, **0.0000°**) | **0.1605°** | [0.00, +118.98] mm |
 
 **The phase does not move with speed** across the walk band — the six crossings sit within
 0.03 of a cycle of each other at half and full walking speed. That is the strongest single
@@ -179,8 +180,9 @@ crosses `transition_fr`, so `root_height_ratio_at` returns `None` and the root s
 bobbing (`body.rs:1131`'s documented one step in an otherwise continuous ladder,
 `stubs.md` #39). With the hip no longer dropping, the gait's sole never goes below ground
 at all — envelope **[0, +118.98] mm** — the leg is far from full extension all swing, and
-the same 1 mm guard now costs **0.1605°** instead of 5.02°. The remaining two crossings
-are in **stance**, not swing.
+the same 1 mm guard now costs **0.1605°** instead of 5.02°. Those two 0.1605° crossings
+are in **stance**; the two that remain in the swing are `ik:ex ↔ ik:OK` at `u = 0.7480`
+and `0.7525` and carry a knee jump of **0.0000°**.
 
 *(Above the transition the swing shows a different artifact, out of scope here and
 recorded so nobody re-derives it: the rendered swing knee is **one constant pose, −0.2°**
@@ -193,10 +195,12 @@ max = 1.10439`) and the solver clamps. The foot then hovers at up to **+96.42 mm
 the integrator rather than asserted:
 
 1. **The derived foot clearance does not reach the screen at walking speed.** The gait
-   derives a mid-swing lift from Winter (1992) — `CLEARANCE_RATIO = 0.015` of reach, 15.3
-   mm for the longleg, 12.66 mm after `swing_gain` — and the **rendered** sole envelope is
-   **[−0.91 mm, +0.99 mm]**. The foot IK pins the sole to the ground for the entire swing;
-   **97 % of the published clearance is cancelled before it is drawn.** This is not a
+   derives a mid-swing lift from Winter (1992) — `CLEARANCE_RATIO = 0.015` of reach, i.e.
+   15.3 mm for the longleg — and its own sole reaches **+12.66 mm** at mid-swing (the rest
+   is `swing_gain`'s below-normal-walk fade, `stubs.md` #43). The **rendered** sole
+   envelope is **[−0.91 mm, +0.99 mm]**. The foot IK pins the sole to the ground for the
+   entire swing: **92 % of the lift the gait computed is cancelled before it is drawn**
+   (94 % against the published 15.3 mm). This is not a
    contradiction of anything written (no document claims the clearance survives IK), but
    `posture-gait.md` § 3.2's derivation and `stubs.md` #43's blast radius (*"every body's
    foot height below a normal walk"*) are both written as if the number reaches the
