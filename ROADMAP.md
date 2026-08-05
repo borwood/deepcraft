@@ -536,6 +536,39 @@ the predicate waits on the term-schema half of this work. **Constructive pointer
 the measurement:** `GrainGrade`'s Wentworth partition already declares real interval
 bounds — that is the shape the property sheet needs, per material, per axis.
 
+### THE BUILD SLOT MUST COVER PROBE **RUNS**, NOT ONLY BUILDS — **sequenced 2026-08-04 (user-greenlit fingerprint; NOT done at wrap on purpose)**
+
+**What it costs today, measured in one session:** an agent burned an entire slice in the
+queue and shipped zero measurements; another wedged twice; the wrap gate failed **three
+times** on three different example binaries. Cause in one line: **a running probe binary is
+neither `cargo` nor `rustc`**, so the mutex hook does not see it — and because probe
+examples carry `test = true` (the probe doctrine, correctly), every one of them is a gate
+build target that **cannot be relinked while it runs** (`LNK1104`). The failure wears a
+compiler error's clothes rather than announcing contention.
+
+**Why it was NOT folded at the wrap:** `scripts/cargo_mutex_hook.py` governs *every*
+session and a parallel session was live; a wrong denial predicate blocks everyone. This
+wants its own slice on a quiet machine, with the hook's own tests.
+
+**Candidate shapes, none picked:** the liveness check also scans for processes whose image
+sits under `target/release/examples` · probe RUNS take the lock the way builds do
+(`cargo run --example` is already a cargo invocation the hook intercepts — the gap is that
+the lock releases when cargo exits, while the spawned exe keeps running) · or a separate
+target dir for probe runs. **Interim rule, live now (§ Observed):** treat `LNK1104` on an
+example as machine contention, never a red — check `Get-Process` for the named probe first.
+
+### ROADMAP § OBSERVED WANTS ITS OWN FILE — **sequenced 2026-08-04 (user-greenlit fingerprint)**
+
+The file is **2.1× its REGISTRY threshold and archiving cannot fix it**: by the archive
+pass's own (correct) rules, entries stamped this session stay live for a session of user
+review, so the board grows faster than status-archiving drains it. § Observed is the bulk
+and it is *entry-addressable* — read by ordinal, never whole — which is exactly the
+registry shape the convention says to split. **Proposed:** `ROADMAP-observed.md` beside
+`ROADMAP-history.md`, live entries only, with the archive pass draining resolved ones from
+*there* into history. Not done at wrap because a split that moves entry numbering while two
+sessions share the checkout is how references rot; it wants a quiet checkout and one pass
+that fixes inbound references in the same commit.
+
 ### THE STAND-IN MARKER CONTROL — **owed 2026-08-03 (corrections #97, greenlit fingerprint); survey first, sweep second**
 
 **The gap it closes.** CLAUDE.md read-first item 6 wants a deliberate loose end annotated **in
