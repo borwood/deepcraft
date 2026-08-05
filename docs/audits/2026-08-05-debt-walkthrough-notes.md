@@ -257,3 +257,81 @@ Whether the same holds for the mover (also a plurality verdict in the key) is **
   fluvial record-terms slice before designing anything that reads faces.
 - **Whether paleo-drainage / paleo-elevation should be persisted, derived, or neither** (§ 3.7.3).
   Untouched by any existing plan.
+
+## 4. ITEM 4 — structural attitude ⚠ WALKED
+
+### 4.1 📌 THE DIRECTION IS ALREADY DECIDED (user, 2026-07-20, `earth-processes.md:44-60`)
+
+> *"**dip/fold as *recorded* deformation (beds deposit flat, later differential uplift tilts
+> them** — the physical mechanism § 7's relax-term approximates), meaningful unconformities,
+> migrating arcs, and hotspot tracks."*
+
+Nobody authors an attitude; it falls out of plate motion. **That entry also says: design pass
+owed before any code, spike-class. It never happened.**
+
+### 4.2 🔴 CORRECTION — `tectonic_history` IS **ON** IN PRODUCTION, and the flag is VESTIGIAL
+
+📌 `DeepConfig::default()` has `tectonic_history: false` — **but the game does not use
+`default()`.** `field.rs::production_config_base` (`:276-380`) explicitly sets:
+
+| flag | production | note |
+|---|---|---|
+| `biotic`, `erodibility`, **`tectonic_history`**, `full_agents` | **ON** | explicitly flipped |
+| `calibrated_rates` | **OFF, explicitly** | deliberate in production, not merely defaulted (corrections #68's receipt) |
+| `weather_inventory` | **OFF** | falls through `..DeepConfig::default()` — the earlier claim **holds** |
+
+**So `--tectonics` (`dc-client/src/main.rs:152`) and the `Option<bool>` override set true over
+true.** Vestigial, from when it was flip-only. *(User's hypothesis, confirmed at source.)*
+
+⚠ **RETRACTED: the integrator's "three substantive off-flags, and they are exactly the set this
+session circled" was an artifact of reading `DeepConfig::default()` and reporting on
+production.** It is **two** (`weather_inventory`, `calibrated_rates`). The tidy pattern was not
+real. **Fifth instance this session of reading one source and asserting about another** — the
+mechanism of corrections #101, in a new costume: *a default is not a configuration.*
+
+### 4.3 ⬦ WHICH MAKES THE ITEM SHARPER, NOT WEAKER
+
+**The deformation machinery runs in every world we generate** — plates advect, boundaries
+classify, uplift repaints per chapter (`tectonics.rs`, substantial and live). **And the world is
+still a layer cake.** So U9 is not waiting on a flag: **the tilt-producing signal already exists
+and the record has no mechanism to receive it.** Beds deposit flat and stay flat while the ground
+beneath them rises differentially. Same shape as everything else today — *a computed thing with
+nowhere to land.*
+
+### 4.4 ⚠ THE REAL FORK — and the corpus asserts BOTH architectures
+
+- **(A) Deformation happens in deeptime and is recorded** — `earth-processes.md` § 7: *"deformation
+  operators on the strata record between epochs; erosion surfaces recorded as events (an
+  unconformity is a first-class entry)."* The record itself folds.
+- **(B) Attitude is re-derived analytically at the collapse tier** — `field.rs:607-610` states this
+  as the intent: per-cell dip vectors re-derived rather than stored, as a Sequenced collapse-tier
+  slice.
+
+**Live doc-vs-doc contradiction on the biggest landform gap.** ⬦ And § 0's refinement ruling
+constrains (B): deriving attitude from **persisted** tectonic fields is interpretation and legal;
+re-deriving it by **re-running** tectonics at read time would be a second simulation and is
+forbidden. Today only `exhum`/`t_crust` survive the run.
+
+### 4.5 ⬦ The seam is already the best-shaped one in the tree
+
+📌 `outcrop_at` (`lithology.rs:365`) — one function, identity `units.last()`, module docs already
+saying *"only the one function changes"* — was called **"the best-shaped seam in the codebase"**
+by the 2026-07-22 seam inventory, with **structural deformation as its named heir**.
+
+### 4.6 ⚠ Open
+
+- **(A) vs (B)** — is attitude a **fact** or an **interpretation**? Same question as everything
+  else today.
+- **`docs/design/tectonics.md` UNREAD** by the integrator; it may settle (A)/(B). **Read before
+  ruling.**
+- **U9 "the world is a LAYER CAKE"** (`ROADMAP.md:4590`, live Observed since 2026-07-20) should be
+  linked to this item rather than left as a separate symptom.
+- ⬦ **The vestigial `--tectonics` flag and its override** are small cleanup that rides this item.
+
+## 5. PARKED FOR EXPLORATION (user, 2026-08-05)
+
+- **Persisting the paleo-fields** (§ 3.7.3 — drainage/elevation at the time a bed formed).
+  User: *"we'll have to mark persisting paleo fields as something to explore, idk about storage
+  footprint or if it's totally needed."* **Unsized, necessity unestablished.** Note it interacts
+  with (B) above: a read-time derivation of attitude needs persisted tectonic state for the same
+  reason a refiner needs persisted drainage.
