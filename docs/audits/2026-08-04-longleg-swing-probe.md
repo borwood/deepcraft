@@ -47,11 +47,12 @@ two ends (liftoff and touchdown); the four 1.0–1.1° ones are two brief re-ent
 the seated band at u ≈ 0.66 and u ≈ 0.83.
 
 **In metres.** The *sole* barely moves — the rendered sole's whole-stride envelope is
-**[−0.91 mm, +0.99 mm]**, and the largest adjacent-sample sole step is **0.99 mm**. What
-moves is the **knee joint and the shin**: 5.02° on a 0.500 m shank is **43.6 mm** of shin
-tip travel, and the accompanying hip step (0.145° → 5.165°, table row `u = 0.9975 →
-0.9980`) swings the knee joint itself through **2.405° × 0.520 m = 21.8 mm** in one
-sample. Quantized to the shipped 60 fps grid it is larger still: **12.2558°** in a single
+**[−0.91 mm, +0.99 mm]** and the largest adjacent-sample sole step is **0.99 mm**. The
+foot is pinned; what visibly moves is the **knee joint**. Across the boundary the hip goes
+`22.349° → 19.944°` while the knee goes `−5.165° → −0.145°` (rows `u = 0.9975 → 0.9980`),
+so the knee joint translates **2.405° × 0.520 m = 21.8 mm** in one sample while the sole
+stays put — the leg visibly snaps from bent to straight with the foot planted. Quantized
+to the shipped 60 fps grid the knee step is larger still: **12.2558°** in a single
 held-pose change.
 
 **The shape, which is the user's description exactly.** The rendered swing knee track,
