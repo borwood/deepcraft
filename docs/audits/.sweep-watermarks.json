@@ -5,7 +5,7 @@
     "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
-  "staleness": "2985273",
+  "staleness": "08afb88",
   "spine-audit": "08afb88",
   "doc-topology": "b4d7514",
   "_baseline": {
@@ -16,6 +16,15 @@
     "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
   },
   "_staleness_last_run": {
+    "commit": "08afb88",
+    "date": "2026-08-05",
+    "mode": "FULL (156 commits since 2985273; two of the three triggers fired — archive pass 3 restructured the board (36e5e14, Observed 94 -> 91), and the watermark spanned two full active sessions (GEO-4/GEO-5 + the parallel BODIES arc))",
+    "audit": "docs/audits/2026-08-05-roadmap-staleness-sweep.md",
+    "recalibration_verdict": "NO COHORT VOIDED. Verified at source rather than taken from the brief: field.rs::production_config_base (field.rs:276-380) explicitly sets tectonic_history: true (:321), full_agents: true (:342), calibrated_rates: FALSE (:378), then ..DeepConfig::default() (:379); DeepConfig::default() sets weather_inventory: false (grid.rs:607). So journal/0111's denudation calibration is STILL OFF in production — corrections #68's receipt holds a FIFTH time — and the GOLDEN_LEDGER 'armed, not owed' entry (ROADMAP.md:3883) is still true. The delta's only real recalibration is a MEASUREMENT one: the record's unit count 10,951,030 -> 7,304,581 (S0 section g, 8022c26), whose Observed entry IS stamped resolved; its cohort has one unstamped survivor, ROADMAP.md:930, filed as F11. NEW THIS WINDOW AND IT CUTS THE OTHER WAY: tectonic_history: true was only established on 2026-08-05 (961a505, the GEO-5 retraction) and it FALSIFIES a live Sequenced bullet's premise — F9.",
+    "findings": "11 (F1-F11) + 4 unresolved. HEADLINE, and it is a mechanism not a list: SIX of the eleven are one shape — a slice shipped or a ruling landed, the AUTHOR updated dependency-graph.md / stubs.md / the audit doc / a close block, and the ROADMAP entry that ASKED was never stamped (F1 quantization, F3 B7, F4 the stand-in marker control, F5 the U-3 NEEDS RATIFICATION, F6 the correlation picks, F7 the spine-audit 'Nothing applied' header). This is the SAME structural meta the 2026-08-03 run reported, unchanged. WORSE: F3 and F5 are the 2026-08-03 sweep's OWN F1 remedy entries (29cf4b5, 'four arcs promoted from close blocks') and both went stale INSIDE 24 HOURS; F5 was additionally caught by doc-topology on 2026-08-04 and not applied, so this is its second independent re-file. F10 is the close-block-only shape recurring THREE more times in the live BODIES block (body.rs extraction, dev-surface gating, and 'the build-slot hook did not hold' — which that block itself labels 'Live defect, unfiled as work'). F2's irony is diagnostic: the sibling entry stamped resolved by the same slice carries the sentence 'a side-effect resolution is the easy kind to leave rotting on the board' while its DIRECT parent, twelve lines above, was left rotting. NOT APPLIED — the integrator adjudicates.",
+    "superseded_run": "docs/audits/2026-08-03-roadmap-staleness-sweep.md — its F1 remedy (29cf4b5) created the entries this run reports as F3/F5."
+  },
+  "_staleness_run_2026_08_03": {
     "commit": "2985273",
     "date": "2026-08-03",
     "mode": "FULL (143 commits since d8407e1; the board was restructured — a close block superseded, two written — AND a default-on recalibration landed: the gravity flip)",
