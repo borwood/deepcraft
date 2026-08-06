@@ -298,9 +298,22 @@ and observation-collapse ("where is the duke?") are the same overlay shape —
 - **Gen / deep-time passes:** perf is *not* a constraint (ready-made worlds are
   the sanctioned answer). Most content passes run here — they shape the *world*.
 - **Runtime:** sacred. Only sparse / event-driven passes; first-party native.
-- **Untrusted third-party content lives at the gen tier** — world-shaping, where
+- ~~**Untrusted third-party content lives at the gen tier** — world-shaping, where
   a sandbox's overhead is acceptable and it never enters the per-frame loop.
-  Trusted / signed content can earn the native runtime path.
+  Trusted / signed content can earn the native runtime path.~~
+  > **⚠ STRUCK 2026-08-05 (doc-topology sweep F2, confirmed at source and by the user).**
+  > This bullet asserted the **retired trust model** — the one thing in this document
+  > `CLAUDE.md` read-first item 0 contradicts *verbatim*: *"there is **no difference in
+  > permission between native and WASM**."* It survived because § Deviations 2's own list of
+  > sites to strike names § *The core / plugin boundary*, § *Passes* and § *Refinement* —
+  > **and not this section**, so its three siblings got banners on 2026-07-29 and it did not.
+  > **An enumeration of where to apply a correction is an enumeration like any other, and
+  > nobody checked it for completeness.**
+  >
+  > **What survives, unchanged:** gen-time is free and runtime is sacred. That is a **cost**
+  > argument and it never depended on trust. **What dies:** any read of this bullet as a
+  > *placement rule* — a mod may author anything a default can, **including a field pass**
+  > (§ Deviations 2, user, emphatic). **Never justify a core/content placement by trust.**
 
 ## Behavior is code; tuning is data
 
@@ -324,7 +337,9 @@ Pass / Material / `ctx` traits); keep the engine private. Standard practice
 
 **Everything is built on the SDK route mods take** (user, 2026-07-23). The default
 passes/materials are *the first plugins* — first-party content ships **through the
-same SDK** (native backend, since it is trusted), not a privileged internal path.
+same SDK** (native backend, because it is ~~trusted~~ **first-party and hot** — *"trusted"*
+struck 2026-08-05 by the same property sweep as § *The two clocks*; the backend choice is a
+loader/compute call, never a permission one), not a privileged internal path.
 Consequence: the SDK surface must be complete enough to carry the **entire default
 content set**, not just toy third-party mods — a higher bar, but **self-validating**
 (if the whole game is built on the SDK, the SDK is proven complete by
@@ -457,3 +472,13 @@ opaque ids for *declarations*; pass *bodies* are backend-compiled code) stays on
 *technical* backend-agnostic shape (cheap insurance, per #1) — **never as a trust wall.**
 Trust/sandboxing is revisited only if/when a real mod ecosystem forces the question — not
 now, not baked in.
+
+> **⚠ THIS DEVIATION'S OWN SITE LIST WAS INCOMPLETE — completed 2026-08-05 (doc-topology F2).**
+> The paragraph above names § *The core / plugin boundary*, § *Passes* and § *Refinement*.
+> **It missed § *The two clocks***, whose third bullet asserted the retired model unstruck for
+> **seven days** while its three named siblings were banner-stamped on 2026-07-29 — inside
+> read-first item 0, the document every session and every agent loads. It is struck there now.
+> **The lesson is the enumeration, not the bullet:** a correction that names *where* it applies
+> is only as good as that list, and this corpus has no check for enumeration completeness. When
+> writing a deviation, prefer a **property** (*"anywhere this document justifies a placement by
+> trust"*) over a list of section names — a property is greppable and a list is not.
