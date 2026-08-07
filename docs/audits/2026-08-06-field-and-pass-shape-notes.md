@@ -261,3 +261,68 @@ collapse = 1 hit, a doc comment).
   engine does not name (`Resource`, `DeepAxis`), so none of the above is declarable today.
 
 ⚠ **Not designed here. This document is the input to a design pass, not the pass.**
+
+---
+
+## 10. Session day 2 (2026-08-06, after the readings) — three things established
+
+### 10.1 ✅ THE FIELD/CELL INVARIANT, in the user's words — **NOT yet ratified into a design doc**
+
+> *"Field passes adjust a field (a world vector space); cell passes read the field when
+> marching over cells, generally."*
+>
+> *"I can't imagine a field pass touching materials at all except reading the record —
+> never changing them."*
+
+⬦ **Stated as the working invariant:** a field pass may read fields, write fields, and **READ**
+the record; it may **not** change materials or write the record. A pass that changes cell
+contents is a **cell pass**, which reads fields while marching cells.
+
+⬦ **This DISPOSES of § 2.1's open third-kind question.** Record→field (`expose`) is legal —
+it is *reading*. Field→record (deposition) is **not a field pass**; it is a cell pass that
+reads fields, which is exactly the user's own definition of one. **No third shape is needed.**
+
+⚠ **Recorded here and deliberately NOT written into `north-star.md` or `material-behavior.md`
+as DECIDED.** The user's framing that day opened *"not making judgements, just exploring."*
+The invariant is being **applied as an analysis lens** by the pass-compliance table
+(`2026-08-06-pass-io-and-compliance-table.md`); promoting it to a decision is a separate ask.
+
+### 10.2 ⬦ WHY A SUMMARY FIELD EXISTS — three reasons, ranked
+
+A summary is a **materialized read-time reduction**: anything it answers, a reader could
+compute from the authority on the spot. What materializing buys:
+
+1. **One canonical reduction instead of several.** Three readers each taking "the dominant
+   direction" with their own tie-break can disagree with each other. Materializing makes the
+   reduction a single decision. *Strongest reason, least obvious.*
+2. **Cost, under the granularity rule** — never recompute inside a hot loop something that
+   does not change inside it.
+3. **A narrower contract** — a reader needing only the dominant direction is not coupled to
+   the authority's full shape.
+
+**Not justified when:** there is one reader (compute it there), or **the consumers moved and
+the plane stayed** — which is `recv` today, and why it fails *"if this consumer disappeared
+tomorrow, would this code still exist in this shape?"* **Summaries are not the defect;
+orphaned and undeclared ones are** (§ 5).
+
+### 10.3 📌 CORRECTION — HEIGHT WEATHERING IS A PER-EPOCH IN-LOOP PASS
+
+The user's recalled *"operates once after loop end"* is **true of its sibling, not of it.**
+📌 `dc:deep/weather` sits in the epoch chain `forcing → drainage → transport → **weather** →
+diffuse → isostasy → deposition → eolian → wave → biotic`, **asserted by a live test** as
+exactly `Erosion::step`'s phase order (`runner.rs:1222-1230`). The post-hoc one-shot over
+frozen state was **inventory** weathering (S18), rebuilt per-epoch in Movement 3
+(journal/0094, corrections #46/#47).
+
+⬦ **The user's underlying concern survives with a different mechanism.** Products *do*
+accumulate over time — as **height**. What does not accumulate is the product's **identity**,
+because at this tier the product is metres of regolith, not a material. The tier that would
+give it one is the inventory tier, and that is **OFF in the shipped world**. So: not *"runs
+once"* but *"runs every epoch and produces something anonymous."*
+
+⬦ **The user's other three points on this pass all land**, and each already has a home:
+(B) no material edge → D-1's *"acts in the right place, records in the wrong shape"*;
+(C) should be several agent passes → the ruled split criterion (coupling timescale vs
+cadence, `material-behavior.md:349-371`), compatible with *"weathering is ONE process,
+saprolite is a state along it"* — one process, several agents; (D) writing a field **and**
+reaching the record is what § 10.1's invariant forbids, and is already filed as D-2.
