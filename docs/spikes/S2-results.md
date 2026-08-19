@@ -36,6 +36,15 @@
 > `Value::{Exists, PolityRef, Event, Extent}` vocabulary — **producer-less, and marked
 > in-code as not a schema to build on.** It is example vocabulary, not a design.
 >
+> **Candidate material for that future visit (pointer added 2026-08-19):** a
+> philosophy-session sketch of **scheduled world-side collapse (orchestrated objective
+> reduction) + pack-authored orchestrators** over this primitive — including the five
+> engine affordances it would force (a prior hook on observe, a trajectory-feature
+> surface, an engine-owned bounded-bias guard, aspect-granularity at commit, augury's
+> referent) — is filed, UNRATIFIED, at `docs/design/ideas.md` § *Orchestrated objective
+> reduction*. Filed at user direction as worth weighing when this shape is checked
+> against real requirements.
+>
 > *Banner added under the **immutable body, mutable header** policy (CLAUDE.md read-first
 > item 5). Nothing below is edited.*
 

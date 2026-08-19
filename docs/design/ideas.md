@@ -803,3 +803,156 @@ probes today):*
   vanilla's).*
 - *The engine-side honesty tests are domain-free already: the subtraction test,
   Law 1/2/3, runtime-is-sacred, purity. Nothing in them names earth.*
+
+## Orchestrated objective reduction — scheduled world-side collapse, and pack-authored orchestrators (philosophy session 2026-08-19; filed at user direction)
+
+**Status: UNRATIFIED — deemed interesting by the user and filed on their
+instruction, "worth recovering and weighing when it comes time to build out this
+system."** Nothing here is work owed, and this entry is **double-gated**:
+`dependency-graph.md` **E8** (the S2 statistical tier, HELD, *"zero consumers, do
+not find it one"*) and `worldgen.md` § *Sequencing* (all non-bio earth science in
+the plugin shape → ecology → social; the opening is a **USER call**). Do not infer
+the gate is met from this entry's existence. Sister sections: § *Uncollapsed
+history frontier*, § *Knowledge is physical*, § *NPC intelligence* (traveler
+collapse). Primary sources: `docs/spikes/S2-results.md`,
+`docs/design/knowledge.md`, `spines.md` § S-1/S-2/S-9.
+
+Grep bait, so the future search lands here: **Orch-OR, orchestrated objective
+reduction, orchestrator, reduction pass, storyteller, dramaturgy, Chronicler,
+Mythographer, world-side collapse, self-collapse, divergence threshold.**
+
+### The frame, and the half the user partly bought
+
+Penrose–Hameroff **Orch-OR**, translated to this domain: fluid state
+self-reduces when an objective **divergence threshold** is crossed, on a
+schedule orchestrated by the world's own structure — no observer required. Big
+forks must resolve fast, trivial ones may stay fluid ~forever (the τ ≈ ħ/E_G
+intuition). The game analog must **discard Penrose's non-computability** —
+entropy doctrine (all draws addressed and seeded, bit-identical replay) is
+structurally anti-Penrose; keep the objectivity and the orchestration only.
+
+The user's stated lean (a lean, **not** a ratification): scheduled objective
+reduction is acceptable **as an optimization of S2, not a rival ontology** —
+*"the world observes only at these intervals, under these constraints… I can
+somewhat buy that as paying in advance to optimize the S2 system."*
+
+Structural observations worth keeping when this reopens:
+
+- **With addressed randomness and no observers, objective reduction degenerates
+  into lazy derivation** (S-9's easy regime — worldgen continued past year
+  zero). The two models genuinely diverge only where **player entropy** enters;
+  the observer is the system's only true entropy source, which is *why*
+  observation writes.
+- S2's own **GO-condition #1** (checkpoint/summary facts) and the **ESS escape
+  valve** (commit the contested aspect when the sampler starves) are already
+  partial objective reduction smuggled in as optimizations — reduction
+  orchestrated by *computational* self-energy: collapse when maintaining the
+  superposition costs more than committing it.
+- The full/coarse/statistical **tier ladder is a divergence threshold, coarsely
+  quantized**; Orch-OR smooths it into a continuous law. Pregen history is
+  already global objective reduction at t = 0; § *Uncollapsed history frontier*
+  pushes pregen toward the observational end, this pushes live play toward the
+  objective end — **one dial, two directions**.
+- Where each model concentrates difficulty: S2's fragile half (retro-dictive
+  conditioning — SIS, weight degeneracy, fact-aware scope) exists *only because*
+  observation commits facts out of causal order; world-side reduction commits in
+  causal order and that machinery evaporates, in exchange for an always-on
+  scheduler, world-bounded (not attention-bounded) ledger growth, and an
+  **authored threshold function** with no ħ to derive it from — a number
+  pretending to be a mechanism unless fitted to something real. Two good packs
+  would disagree on the threshold ⇒ **opinion ⇒ pack content** (the
+  opinion-vs-absence test); the engine owns only ledger + collapse primitives.
+
+### The honest boundary for any orchestrator
+
+S2's observe picks one trajectory **from the conditioned ensemble** — every
+candidate is a history physics permits. An orchestrator may **re-weight that
+pick** (a prior over the support); it may never inject an outcome from outside
+the support — that is conjuring, forbidden by knowledge.md's *"information is
+never conjured for the player's convenience."* Nearest existing art: RimWorld's
+storytellers (pack-swappable orchestrators) — but they **spawn** events; ours
+may only **prefer**. Uninstalled = the identity orchestrator, weight-proportional
+draw, byte-identical (the S-5 identity-default discipline).
+
+### Fantasy 1 — the Chronicler (dramaturgical prior over reduction outcomes)
+
+A scheduled reduction comes due; the engine runs the S2 sampler exactly as
+spiked (K trajectories forced through every committed fact, each weighted); a
+pack-supplied **scoring function multiplies the weights before the draw**.
+Pass-shaped in the north-star sense: self-declaring (reads: candidate
+trajectories + the committed record nearby; writes: draw weights only),
+compiler-validated, tuned by data. Dramaturgy is honest because it is a function
+*of the record*: irony is computable when the three survived sieges are in the
+ledger; tension curves are time-since-last-committed-catastrophe within N hops.
+Determinism survives (pure score, addressed draw); every S2 invariant survives
+(selection stays within the support). **Confined to the socia/civ tier by the
+project's own values** — no dramaturgical thumb on earth processes (which the
+statistical tier never governed anyway; that history is pregen and objective).
+
+**Honest divergences from granted shape:**
+- `engine::observe` has **no caller-prior hook** — its picker is seeded by
+  `(subject, time, aspect)` and takes no weighting term. Adding one is an engine
+  surface change, and a real one: dramatic scoring wants **trajectory-level
+  features** (arcs across many subjects and ticks), which the sampler holds
+  internally and no API exposes. Unbuilt, larger than a parameter.
+- Biasing toward improbable outcomes multiplies weight variance — **S2's
+  recorded weight-degeneracy failure mode arriving early**. The guard belongs
+  engine-side by the **E4 precedent** (only the kernel can know its own
+  constant): a likelihood-ratio cap / ESS floor that makes the unsafe
+  orchestrator **inexpressible**, not merely forbidden.
+- **Augury's referent forks**: does augury read physics' marginal or the
+  orchestrated distribution the world will actually draw from? Prophets sensing
+  probability vs prophets sensing *fate* — a pack decision with real gameplay
+  meaning, and itself evidence this whole layer is pack territory.
+
+### Fantasy 2 — the Mythographer (orchestrating the record, not the world)
+
+Physics stays indifferent — reductions draw weight-proportionally. The pack
+orchestrates **what gets committed, and at what grain**: aspects already permit
+partial observation (`AgentAlive` ⊂ `AgentBehavior`), and a scheduled reduction
+must choose which aspects to pin. The Mythographer allocates **resolution by
+salience** — the sack gets its fine causal chain committed (who, when, which
+gate); three provinces over, the same epoch commits only "population declined."
+The world's *determinacy itself* becomes salience-shaped: legends are detailed
+exactly where the record is dense; the mundane stays fluid and re-derivable.
+Composes with knowledge.md's mythologization (the whisper networks carry more
+where more was pinned). Pleasant inversion vs Fantasy 1: the Chronicler *fights*
+the sampler (bias costs variance), the Mythographer *helps* it (dense commitment
+at drama loci is the ESS relief valve).
+
+**Honest divergences from granted shape:**
+- Coarse commitments ("declined") want **aspect algebra** — set/interval facts —
+  which is S2 **open question #3**, unbuilt.
+- Whether Mythographer commitments are **facts** (append-only, frozen forever —
+  the over-freezing risk) **or a derived cache** keyed by ledger prefix is S2
+  **open question #1**, verbatim and unanswered.
+- The **spatially indexed ledger** (facts by volume, carrying generative
+  parameters that chunk collapse consumes — knowledge.md req. 2) has zero
+  implementation.
+- Doctrinal collision to argue properly, not smooth over: a coarse committed
+  summary standing in for a fine truth flirts with **"a summary is not an
+  authority."** The escape — these are facts about distributions the world
+  itself pinned, not cheap answers derived from a richer authority — needs to be
+  made for real the day this is built.
+
+### The five requirements the fantasies force (the recoverable artifact)
+
+Walked end-to-end, per the knowledge.md balrog-bore method, the sketches extract
+what the current shape does not meet:
+
+1. A **prior/weighting hook** on observe-and-reduce (a caller-supplied term the
+   draw honors).
+2. A **trajectory-feature surface** for scorers (arc-level reads across
+   subjects/ticks).
+3. An **engine-owned bounded-bias guard** (likelihood-ratio cap / ESS floor —
+   the E4 move: the sampler owns its own degeneracy constant).
+4. **Aspect-granularity choice at commit time**, with the fact-vs-cache question
+   (S2 OQ #1) answered.
+5. A pack-level ruling on **augury's referent** (physics' distribution vs the
+   orchestrated one).
+
+None of it is owed. What the fantasies claim is only that the S2 primitive's
+shape is **load-bearing in the right places** — the orchestrator slot falls
+naturally out of a sampler that separates support from selection, and a ledger
+that separates what happened from how finely it is remembered. Neither fantasy
+required breaking a granted invariant to be interesting.
