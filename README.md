@@ -1,6 +1,6 @@
 # deepcraft
 
-Internal codename. Public name TBD.
+> In-progress, for-fun exploration of the Rust/Bevy stack.
 
 A voxel game that starts near Minecraft and grows toward Dwarf Fortress-in-3D:
 plugin-first architecture, first-class MCP integration, in-game authoring tools
